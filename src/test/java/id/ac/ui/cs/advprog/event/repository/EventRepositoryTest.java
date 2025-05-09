@@ -31,13 +31,13 @@ public class EventRepositoryTest {
 
         List<EventBuilder> result = eventBuilderRepository.findByEventDate(date);
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getEventName()).isEqualTo("Event 1");
+        assertThat(result.get(0).getTitle()).isEqualTo("Event 1");
     }
 
     @Test
     @DisplayName("Test findByLocation")
     void testFindByLocation() {
-        EventBuilder event = new EventBuilder("Event 2", LocalDateTime.now(), "Bandung");
+        EventBuilder event = new EventBuilder("Event 2", "Description", LocalDateTime.now(), "Bandung", 0.0);
         eventBuilderRepository.save(event);
 
         List<EventBuilder> result = eventBuilderRepository.findByLocation("Bandung");
@@ -49,12 +49,12 @@ public class EventRepositoryTest {
     @DisplayName("Test findByEventDateAfter")
     void testFindByEventDateAfter() {
         LocalDateTime now = LocalDateTime.now();
-        EventBuilder futureEvent = new EventBuilder("Future Event", now.plusDays(1), "Surabaya");
+        EventBuilder futureEvent = new EventBuilder("Future Event", "Description", now.plusDays(1), "Surabaya", 0.0);
         eventBuilderRepository.save(futureEvent);
 
         List<EventBuilder> result = eventBuilderRepository.findByEventDateAfter(now);
         assertThat(result).isNotEmpty();
-        assertThat(result.get(0).getEventName()).isEqualTo("Future Event");
+        assertThat(result.get(0).getTitle()).isEqualTo("Future Event");
     }
 
 }
