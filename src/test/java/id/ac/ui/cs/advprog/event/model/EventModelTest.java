@@ -1,15 +1,18 @@
 package id.ac.ui.cs.advprog.event.model;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import id.ac.ui.cs.advprog.event.enums.EventStatus;
 
 class EventModelTest {
 
-    private Event event;
+    private EventBuilder event;
     private final String title = "Concert";
     private final String description = "Music concert";
     private final LocalDateTime eventDate = LocalDateTime.of(2025, 6, 15, 19, 30);
@@ -18,7 +21,7 @@ class EventModelTest {
 
     @BeforeEach
     void setUp() {
-        event = new Event();
+        event = new EventBuilder();
     }
 
     @Test
@@ -29,7 +32,7 @@ class EventModelTest {
 
     @Test
     void testParameterizedConstructor() {
-        Event paramEvent = new Event(title, description, eventDate, location, basePrice);
+        EventBuilder paramEvent = new EventBuilder(title, description, eventDate, location, basePrice);
 
         assertEquals(title, paramEvent.getTitle(), "Title should match");
         assertEquals(description, paramEvent.getDescription(), "Description should match");
