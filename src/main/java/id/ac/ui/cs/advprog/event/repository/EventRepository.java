@@ -1,5 +1,6 @@
 package id.ac.ui.cs.advprog.event.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,9 @@ import id.ac.ui.cs.advprog.event.model.EventBuilder;
 
 @Repository
 public interface EventRepository extends JpaRepository<EventBuilder, UUID> {
-    
+    List<EventBuilder> findByEventDate(LocalDateTime eventDate);
+    List<EventBuilder> findByLocation(String location);
+    List<EventBuilder> findByEventDateAfter(LocalDateTime now);
+
    
 }
