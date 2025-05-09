@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
@@ -18,68 +19,42 @@ import id.ac.ui.cs.advprog.event.model.EventBuilder;
 public class EventRepositoryTest {
 
     @Autowired
-    private EventRepository eventRepository;
+    private EventRepository eventBuilderRepository;
 
-     private EventBuilder sampleEvent;
+    @Test
+    @DisplayName("Test findByEventDate")
+    void testFindByEventDate() {
+        LocalDateTime date = LocalDateTime.of(2025, 5, 10, 10, 0);
 
-    @BeforeEach
-    void setUp() {
-        sampleEvent = new Event();
-        sampleEvent.setTitle("Test Event");
-        sampleEvent.setDescription("Testing event creation");
-        sampleEvent.setStatus(EventStatus.PUBLISHED);
-        sampleEvent.setEventDate(LocalDateTime.now().plusDays(1));
-        eventRepository.save(sampleEvent);
+        EventBuilder event = new EventBuilder("Event 1", "Description", date, "Jakarta", 0.0);
+        eventBuilderRepository.save(event);
+
+        List<EventBuilder> result = eventBuilderRepository.findByEventDate(date);
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEventName()).isEqualTo("Event 1");
     }
 
     @Test
-    void testAddEvent() {
-        Event newEvent = new Event();
-        newEvent.setTitle("Another Event");
-        newEvent.setDescription("Description");
-        newEvent.setStatus(EventStatus.ACTIVE);
-        newEvent.setDateTime(LocalDateTime.now().plusDays(2));
+    @DisplayName("Test findByLocation")
+    void testFindByLocation() {
+        EventBuilder event = new EventBuilder("Event 2", LocalDateTime.now(), "Bandung");
+        eventBuilderRepository.save(event);
 
-        Event savedEvent = eventRepository.add(newEvent);
-        assertThat(savedEvent.getId()).isNotNull();
+        List<EventBuilder> result = eventBuilderRepository.findByLocation("Bandung");
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getLocation()).isEqualTo("Bandung");
     }
 
     @Test
-    void testListEvents() {
-        List<Event> events = eventRepository.listEvents();
-        assertThat(events).isNotEmpty();
-    }
+    @DisplayName("Test findByEventDateAfter")
+    void testFindByEventDateAfter() {
+        LocalDateTime now = LocalDateTime.now();
+        EventBuilder futureEvent = new EventBuilder("Future Event", now.plusDays(1), "Surabaya");
+        eventBuilderRepository.save(futureEvent);
 
-    @Test
-    void testGetById() {
-        Optional<Event> found = eventRepository.getById(sampleEvent.getId());
-        assertThat(found).isPresent();
-        assertThat(found.get().getTitle()).isEqualTo("Test Event");
-    }
-
-    @Test
-    void testUpdateEvent() {
-        sampleEvent.setTitle("Updated Title");
-        Event updated = eventRepository.updateEvent(sampleEvent);
-        assertThat(updated.getTitle()).isEqualTo("Updated Title");
-    }
-
-    @Test
-    void testDeleteEvent() {
-        UUID id = sampleEvent.getId();
-        eventRepository.delete(id);
-        Optional<Event> found = eventRepository.findById(id);
-        assertThat(found).isNotPresent();
-    }
-
-    @Test
-    void testUpdateStatus() {
-        int updatedRows = eventRepository.updateStatus(sampleEvent.getId(), EventStatus.CANCELLED);
-        assertThat(updatedRows).isEqualTo(1);
-
-        Optional<Event> updatedEvent = eventRepository.findById(sampleEvent.getId());
-        assertThat(updatedEvent).isPresent();
-        assertThat(updatedEvent.get().getStatus()).isEqualTo(EventStatus.CANCELLED);
+        List<EventBuilder> result = eventBuilderRepository.findByEventDateAfter(now);
+        assertThat(result).isNotEmpty();
+        assertThat(result.get(0).getEventName()).isEqualTo("Future Event");
     }
 
 }
