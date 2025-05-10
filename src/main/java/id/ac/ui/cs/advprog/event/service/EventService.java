@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
+
 public interface  EventService {
     UpdateEventDTO updateEvent(UUID id, UpdateEventDTO updateEventDTO);
     void deleteEvent(UUID id);

@@ -28,12 +28,17 @@ import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.repository.EventRepository;
+import id.ac.ui.cs.advprog.event.service.EventServiceImpl;
+import static org.mockito.Mockito.*;
+import org.mockito.InjectMocks;
 
 @ExtendWith(MockitoExtension.class)
 public class EventServiceImplTest {
 
     @Mock
     private EventRepository eventRepository;
+
+    @InjectMocks
     private EventServiceImpl eventService;
    
 
