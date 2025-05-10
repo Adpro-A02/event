@@ -30,17 +30,17 @@ class EventModelTest {
         assertEquals(EventStatus.DRAFT, event.getStatus(), "Default status should be DRAFT");
     }
 
-    @Test
-    void testParameterizedConstructor() {
-        EventBuilder paramEvent = new EventBuilder(title, description, eventDate, location, basePrice);
-
-        assertEquals(title, paramEvent.getTitle(), "Title should match");
-        assertEquals(description, paramEvent.getDescription(), "Description should match");
-        assertEquals(eventDate, paramEvent.getEventDate(), "Event date should match");
-        assertEquals(location, paramEvent.getLocation(), "Location should match");
-        assertEquals(basePrice, paramEvent.getBasePrice(), "Base price should match");
-        assertEquals(EventStatus.DRAFT, paramEvent.getStatus(), "Status should be DRAFT");
-    }
+//    @Test
+//    void testParameterizedConstructor() {
+//        EventBuilder paramEvent = new EventBuilder(title, description, eventDate, location, basePrice);
+//
+//        assertEquals(title, paramEvent.getTitle(), "Title should match");
+//        assertEquals(description, paramEvent.getDescription(), "Description should match");
+//        assertEquals(eventDate, paramEvent.getEventDate(), "Event date should match");
+//        assertEquals(location, paramEvent.getLocation(), "Location should match");
+//        assertEquals(basePrice, paramEvent.getBasePrice(), "Base price should match");
+//        assertEquals(EventStatus.DRAFT, paramEvent.getStatus(), "Status should be DRAFT");
+//    }
 
     @Test
     void testSetAndGetId() {

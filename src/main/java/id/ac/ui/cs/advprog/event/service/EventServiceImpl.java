@@ -11,7 +11,7 @@ import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.repository.EventRepository;
 
 @Service
-public class EventServiceimpl implements EventService {
+public class EventServiceImpl implements EventService {
 
     @Autowired
     private EventRepository eventRepository;

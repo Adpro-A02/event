@@ -1,7 +1,5 @@
 package id.ac.ui.cs.advprog.event.model;
 
-
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,76 +15,46 @@ public class EventBuilder {
     private LocalDateTime eventDate;
     private String location;
     private double basePrice;
-
-
     private EventStatus status = EventStatus.DRAFT;
 
-  
-    public EventBuilder() {}
-
-    public EventBuilder(String title, String description, LocalDateTime eventDate, String location, double basePrice) {
-        this.title = title;
-        this.description = description;
-        this.eventDate = eventDate;
-        this.location = location;
-        this.basePrice = basePrice;
-        this.status = EventStatus.DRAFT;
-    }
-
     
-    public UUID getId() {
-        return id;
-    }
 
-    public void setId(UUID id) {
+    public EventBuilder setId(UUID id) {
         this.id = id;
+        return this;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
+    public EventBuilder setTitle(String title) {
         this.title = title;
+        return this;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
+    public EventBuilder setDescription(String description) {
         this.description = description;
+        return this;
     }
 
-    public LocalDateTime getEventDate() {
-        return eventDate;
-    }
-
-    public void setEventDate(LocalDateTime eventDate) {
+    public EventBuilder setEventDate(LocalDateTime eventDate) {
         this.eventDate = eventDate;
+        return this;
     }
 
-    public String getLocation() {
-        return location;
-    }
-
-    public void setLocation(String location) {
+    public EventBuilder setLocation(String location) {
         this.location = location;
+        return this;
     }
 
-    public double getBasePrice() {
-        return basePrice;
-    }
-
-    public void setBasePrice(double basePrice) {
+    public EventBuilder setBasePrice(double basePrice) {
         this.basePrice = basePrice;
+        return this;
     }
 
-    public EventStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EventStatus status) {
+    public EventBuilder setStatus(EventStatus status) {
         this.status = status;
+        return this;
+    }
+
+    public Event build() {
+        return new Event(this);
     }
 }

@@ -17,7 +17,7 @@ import id.ac.ui.cs.advprog.event.enums.EventStatus;
 @AllArgsConstructor
 public class UpdateEventDTO {
     
-    private UUID id;
+   
 
     @NotBlank(message = "Title tidak boleh kosong")
     private String title;

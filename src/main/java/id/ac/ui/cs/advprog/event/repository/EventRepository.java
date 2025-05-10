@@ -10,13 +10,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import id.ac.ui.cs.advprog.event.model.EventBuilder;
+import id.ac.ui.cs.advprog.event.model.Event; 
 
 @Repository
-public interface EventRepository extends JpaRepository<EventBuilder, UUID> {
-    List<EventBuilder> findByEventDate(LocalDateTime eventDate);
-    List<EventBuilder> findByLocation(String location);
-    List<EventBuilder> findByEventDateAfter(LocalDateTime now);
+public interface EventRepository extends JpaRepository<Event, UUID> {
+    List<Event> findByEventDate(LocalDateTime eventDate);
+    List<Event> findByLocation(String location);
+    List<Event> findByEventDateAfter(LocalDateTime now);
 
    
 }
