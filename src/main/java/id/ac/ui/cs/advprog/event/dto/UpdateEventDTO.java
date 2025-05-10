@@ -2,12 +2,18 @@ package id.ac.ui.cs.advprog.event.dto;
 
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
-
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UpdateEventDTO {
 
     @NotBlank(message = "Title tidak boleh kosong")
