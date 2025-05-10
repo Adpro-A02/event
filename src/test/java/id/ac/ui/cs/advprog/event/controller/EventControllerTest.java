@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -55,6 +56,7 @@ class EventControllerTest {
     private Event dummyEvent1;
     private Event dummyEvent2;
 
+    private UUID nonExistentId;
     private UUID eventId1;
     private UUID eventId2;
     @BeforeEach
@@ -86,6 +88,8 @@ class EventControllerTest {
 
         eventRepository.save(dummyEvent1);
         eventRepository.save(dummyEvent2);
+
+        nonExistentId = UUID.randomUUID();
        
     }
 
@@ -315,4 +319,47 @@ class EventControllerTest {
                 .andExpect(jsonPath("$[0].title").value("Event 1"))
                 .andExpect(jsonPath("$[1].title").value("Event 2"));
     }
+
+    @Test
+    void testGetEventById_NotFound() throws Exception {
+        Mockito.when(eventService.getEvent(nonExistentId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/events/{id}", nonExistentId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Event not found"));
+    }
+    @Test
+    void testUpdateEvent_NotFound() throws Exception {
+        UpdateEventDTO dto = new UpdateEventDTO();
+        dto.setTitle("Updated Title");
+
+        Mockito.when(eventService.updateEvent(eq(nonExistentId), any(UpdateEventDTO.class)))
+            .thenThrow(new RuntimeException("Not found"));
+
+        mockMvc.perform(put("/api/events/{id}", nonExistentId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(new ObjectMapper().writeValueAsString(dto)))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Event not found"));
+    }
+    @Test
+    void testPublishEvent_NotFound() throws Exception {
+        Mockito.when(eventService.publishEvent(nonExistentId))
+            .thenThrow(new RuntimeException("Not found"));
+
+        mockMvc.perform(patch("/api/events/{id}/publish", nonExistentId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Event not found"));
+    }
+    @Test
+    void testCancelEvent_NotFound() throws Exception {
+        Mockito.when(eventService.cancelEvent(nonExistentId))
+            .thenThrow(new RuntimeException("Not found"));
+
+        mockMvc.perform(patch("/api/events/{id}/cancel", nonExistentId))
+            .andExpect(status().isNotFound())
+            .andExpect(jsonPath("$.message").value("Event not found"));
+    }
+     
+
 }
