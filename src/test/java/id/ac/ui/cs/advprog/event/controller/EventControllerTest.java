@@ -6,6 +6,7 @@ import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import id.ac.ui.cs.advprog.event.service.EventService;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -13,13 +14,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -36,6 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 import id.ac.ui.cs.advprog.event.repository.EventRepository;
+
 
 class EventControllerTest {
 
@@ -63,6 +62,7 @@ class EventControllerTest {
     void setUp() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(eventController).build();
+        objectMapper = new ObjectMapper();
         LocalDateTime dates = LocalDateTime.of(2025, 5, 10, 10, 0);
         eventId1 = UUID.randomUUID();
         eventId2 = UUID.randomUUID();
@@ -116,9 +116,8 @@ class EventControllerTest {
         
       
         mockMvc.perform(post("/api/events")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(eventToCreate)))
-                .andExpect(status().isOk())
+                .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.title").value("Tech Conference 2025"))
                 .andExpect(jsonPath("$.location").value("Convention Center"));
@@ -138,8 +137,8 @@ class EventControllerTest {
     @Test
     void testGetEventById() throws Exception {
         
-       
-        when(eventService.getEvent(eventId1)).thenReturn(Optional.of(dummyEvent1));
+        
+        Mockito.when(eventService.getEvent(eventId1)).thenReturn(dummyEvent1);
 
         mockMvc.perform(get("/api/events/{id}", eventId1))
                 .andExpect(status().isOk())
@@ -322,18 +321,22 @@ class EventControllerTest {
 
     @Test
     void testGetEventById_NotFound() throws Exception {
-        Mockito.when(eventService.getEvent(nonExistentId)).thenReturn(Optional.empty());
+        UUID eventId = UUID.fromString("123e4567-e89b-12d3-a456-426614174000");
 
-        mockMvc.perform(get("/api/events/{id}", nonExistentId))
+        Mockito.when(eventService.getEvent(eventId)).thenReturn(null);
+
+
+        mockMvc.perform(get("/api/events/{id}", eventId))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.message").value("Event not found"));
-    }
+}
     @Test
     void testUpdateEvent_NotFound() throws Exception {
+        UUID eventId = UUID.randomUUID();
         UpdateEventDTO dto = new UpdateEventDTO();
         dto.setTitle("Updated Title");
 
-        Mockito.when(eventService.updateEvent(eq(nonExistentId), any(UpdateEventDTO.class)))
+        Mockito.when(eventService.updateEvent(eq(eventId), any(UpdateEventDTO.class)))
             .thenThrow(new RuntimeException("Not found"));
 
         mockMvc.perform(put("/api/events/{id}", nonExistentId)
@@ -344,7 +347,8 @@ class EventControllerTest {
     }
     @Test
     void testPublishEvent_NotFound() throws Exception {
-        Mockito.when(eventService.publishEvent(nonExistentId))
+        UUID eventIds = UUID.randomUUID();
+        Mockito.when(eventService.publishEvent(eventIds))
             .thenThrow(new RuntimeException("Not found"));
 
         mockMvc.perform(patch("/api/events/{id}/publish", nonExistentId))
@@ -353,7 +357,8 @@ class EventControllerTest {
     }
     @Test
     void testCancelEvent_NotFound() throws Exception {
-        Mockito.when(eventService.cancelEvent(nonExistentId))
+        UUID eventId = UUID.randomUUID();
+        Mockito.when(eventService.cancelEvent(eventId))
             .thenThrow(new RuntimeException("Not found"));
 
         mockMvc.perform(patch("/api/events/{id}/cancel", nonExistentId))

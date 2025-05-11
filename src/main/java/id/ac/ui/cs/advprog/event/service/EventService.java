@@ -1,6 +1,8 @@
 package id.ac.ui.cs.advprog.event.service;
 
+import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
+import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -14,10 +16,10 @@ public interface  EventService {
     List<Event> getEventByDate(LocalDate date);
     List<Event> listEvents();
     Event createEvent(Event event);
-    Event publishEvent(UUID id);
-    Event cancelEvent(UUID id);
-    Event completeEvent(UUID id);
-    Optional<Event> getEvent(UUID id);
+    ResponseDTO<EventStatus> cancelEvent(UUID id);
+    ResponseDTO<EventStatus> publishEvent(UUID id);
+    ResponseDTO<EventStatus> completeEvent(UUID id);
+    Event getEvent(UUID id);
     boolean validateEvent(UpdateEventDTO event);
     List<Event> getUpcomingEvents(); 
    

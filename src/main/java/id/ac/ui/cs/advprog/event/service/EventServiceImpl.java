@@ -1,5 +1,6 @@
 package id.ac.ui.cs.advprog.event.service;
 
+import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
@@ -73,31 +74,49 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public Event publishEvent(UUID id) {
-        return changeStatus(id, EventStatus.PUBLISHED);
-    }
-
-    @Override
-    public Event cancelEvent(UUID id) {
+    public ResponseDTO<EventStatus> cancelEvent(UUID id) {
         return changeStatus(id, EventStatus.CANCELLED);
     }
 
     @Override
-    public Event completeEvent(UUID id) {
-        return changeStatus(id, EventStatus.COMPLETED);
+    public ResponseDTO<EventStatus> publishEvent(UUID id) {
+        return changeStatus(id, EventStatus.PUBLISHED);
     }
 
     @Override
-    public Optional<Event> getEvent(UUID id) {
-        return eventRepository.findById(id);
+    public ResponseDTO<EventStatus> completeEvent(UUID id) {
+        return changeStatus(id, EventStatus.COMPLETED);
     }
 
-    private Event changeStatus(UUID id, EventStatus status) {
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
-        event.setStatus(status);
-        return eventRepository.save(event);
+
+    @Override
+    public Event  getEvent(UUID id) {
+        return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
     }
+
+    private ResponseDTO<EventStatus> changeStatus(UUID id, EventStatus status) {
+        Optional<Event> optionalEvent = eventRepository.findById(id);
+
+        if (optionalEvent.isEmpty()) {
+            return ResponseDTO.<EventStatus>builder()
+                    .success(false)
+                    .message("Event not found")
+                    .data(null)  // Data harus null jika event tidak ditemukan
+                    .build();
+        }
+
+        Event event = optionalEvent.get();
+        event.setStatus(status);
+        eventRepository.save(event);
+
+        // Pastikan data berisi status yang sesuai
+        return ResponseDTO.<EventStatus>builder()
+                .success(true)
+                .message("Event status changed to " + status)
+                .data(status)  // Status yang dikembalikan sebagai data
+                .build();
+    }
+
 
     @Override
     public List<Event> getUpcomingEvents() {

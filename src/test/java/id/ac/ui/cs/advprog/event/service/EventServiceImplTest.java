@@ -7,14 +7,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
@@ -22,6 +21,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
@@ -205,10 +206,10 @@ public class EventServiceImplTest {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
         when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
 
-        Event result = eventService.publishEvent(eventId);
+        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId);
 
         assertNotNull(result);
-        assertEquals(EventStatus.PUBLISHED, result.getStatus());
+        assertEquals(EventStatus.PUBLISHED, result.getData());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).save(any(Event.class));
     }
@@ -218,10 +219,10 @@ public class EventServiceImplTest {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
         when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
 
-        Event result = eventService.cancelEvent(eventId);
+        ResponseDTO<EventStatus> result = eventService.cancelEvent(eventId);
 
         assertNotNull(result);
-        assertEquals(EventStatus.CANCELLED, result.getStatus());
+        assertEquals(EventStatus.CANCELLED, result.getData());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).save(any(Event.class));
     }
@@ -231,45 +232,50 @@ public class EventServiceImplTest {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
         when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
 
-        Event result = eventService.completeEvent(eventId);
+
+        ResponseDTO<EventStatus> result = eventService.completeEvent(eventId);
 
         assertNotNull(result);
-        assertEquals(EventStatus.COMPLETED, result.getStatus());
+        assertNotNull(result.getData());
+        assertEquals(EventStatus.COMPLETED, result.getData());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).save(any(Event.class));
     }
 
     @Test
     void testGetEvent_Found() {
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
+        Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
 
-        Optional<Event> result = eventService.getEvent(eventId);
 
-        assertTrue(result.isPresent());
-        assertEquals(testEvent, result.get());
-        verify(eventRepository, times(1)).findById(eventId);
+        Event result = eventService.getEvent(eventId);
+
+        Assertions.assertEquals(testEvent, result);
+        Mockito.verify(eventRepository, Mockito.times(1)).findById(eventId);
     }
 
     @Test
     void testGetEvent_NotFound() {
-        when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
+        Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 
-        Optional<Event> result = eventService.getEvent(eventId);
 
-        assertFalse(result.isPresent());
-        verify(eventRepository, times(1)).findById(eventId);
+        assertThrows(RuntimeException.class, () -> {
+            eventService.getEvent(eventId);
+        });
+
+
+        Mockito.verify(eventRepository, Mockito.times(1)).findById(eventId);
     }
 
     @Test
     void testChangeStatus_EventNotFound() {
-        when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
+        UUID eventId = UUID.randomUUID();
+        Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> {
-            eventService.publishEvent(eventId);
-        });
-        
-        verify(eventRepository, times(1)).findById(eventId);
-        verify(eventRepository, never()).save(any(Event.class));
+        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId);
+
+        assertFalse(result.isSuccess());
+        assertEquals("Event not found", result.getMessage());
+        assertNull(result.getData());
     }
      @Test
     void testGetUpcomingEvents() {
