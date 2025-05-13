@@ -16,6 +16,7 @@ public class EventBuilder {
     private String location;
     private double basePrice;
     private EventStatus status = EventStatus.DRAFT;
+    private UUID userId;
 
     
 
@@ -51,6 +52,10 @@ public class EventBuilder {
 
     public EventBuilder setStatus(EventStatus status) {
         this.status = status;
+        return this;
+    }
+    public EventBuilder setUserId(UUID userId) { 
+        this.userId = userId;
         return this;
     }
 

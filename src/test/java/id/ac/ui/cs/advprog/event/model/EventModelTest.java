@@ -75,4 +75,29 @@ class EventModelTest {
         event.setStatus(EventStatus.CANCELLED);
         assertEquals(EventStatus.CANCELLED, event.getStatus(), "Status should match after update");
     }
+
+@Test
+void testBuildEvent() {
+    UUID id = UUID.randomUUID();
+    UUID userId = UUID.randomUUID();
+
+    Event builtEvent = event
+        .setId(id)
+        .setTitle(title)
+        .setDescription(description)
+        .setEventDate(eventDate)
+        .setLocation(location)
+        .setBasePrice(basePrice)
+        .setUserId(userId)
+        .build();
+
+    assertEquals(id, builtEvent.getId());
+    assertEquals(title, builtEvent.getTitle());
+    assertEquals(description, builtEvent.getDescription());
+    assertEquals(eventDate, builtEvent.getEventDate());
+    assertEquals(location, builtEvent.getLocation());
+    assertEquals(basePrice, builtEvent.getBasePrice());
+    assertEquals(EventStatus.DRAFT, builtEvent.getStatus());
+    assertEquals(userId, builtEvent.getUserId());
+}
 }

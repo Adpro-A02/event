@@ -31,7 +31,7 @@ public class EventRepositoryTest {
     void setUp() {
         eventId = UUID.randomUUID();
         eventDate = LocalDateTime.now().plusMonths(4);
-        
+        UUID userId = UUID.randomUUID();
         testEvent = new Event();
         testEvent.setId(eventId);
         testEvent.setTitle("Pemrograman Lanjut");
@@ -40,6 +40,7 @@ public class EventRepositoryTest {
         testEvent.setLocation("Depok");
         testEvent.setBasePrice(100.0);
         testEvent.setStatus(EventStatus.DRAFT);
+        testEvent.setUserId(userId);
     }
 
 

@@ -90,7 +90,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
-    public Event  getEvent(UUID id) {
+    public Event getEvent(UUID id) {
         return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
     }
 
@@ -101,7 +101,7 @@ public class EventServiceImpl implements EventService {
             return ResponseDTO.<EventStatus>builder()
                     .success(false)
                     .message("Event not found")
-                    .data(null)  // Data harus null jika event tidak ditemukan
+                    .data(null)  
                     .build();
         }
 
@@ -113,7 +113,7 @@ public class EventServiceImpl implements EventService {
         return ResponseDTO.<EventStatus>builder()
                 .success(true)
                 .message("Event status changed to " + status)
-                .data(status)  // Status yang dikembalikan sebagai data
+                .data(status)  
                 .build();
     }
 

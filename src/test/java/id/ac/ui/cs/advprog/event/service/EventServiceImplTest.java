@@ -51,6 +51,7 @@ public class EventServiceImplTest {
     void setUp() {
         eventId = UUID.randomUUID();
         eventDate = LocalDateTime.now().plusMonths(4);
+        UUID userId = UUID.randomUUID();
         
         testEvent = new Event();
         testEvent.setId(eventId);
@@ -60,6 +61,7 @@ public class EventServiceImplTest {
         testEvent.setLocation("Test Location");
         testEvent.setBasePrice(100.0);
         testEvent.setStatus(EventStatus.DRAFT);
+        testEvent.setUserId(userId);
     }
 
     @Test
@@ -315,6 +317,7 @@ public class EventServiceImplTest {
         anotherUpcomingEvent.setId(UUID.randomUUID());
         anotherUpcomingEvent.setTitle("Another Event");
         anotherUpcomingEvent.setEventDate(LocalDateTime.now().plusMonths(2));
+        
         
         List<Event> upcomingEvents = Arrays.asList(testEvent, anotherUpcomingEvent);
         when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(upcomingEvents);

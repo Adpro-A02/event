@@ -1,15 +1,24 @@
 package id.ac.ui.cs.advprog.event.model;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+import org.hibernate.annotations.GenericGenerator;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.GenericGenerator;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "events")
@@ -30,7 +39,7 @@ public class Event {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @JsonProperty("event_date") // ini agar nama JSON "event_date" bisa masuk ke field ini
+    @JsonProperty("event_date")
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @Column(name = "event_date", nullable = false)
     private LocalDateTime eventDate;
@@ -45,6 +54,10 @@ public class Event {
     @Enumerated(EnumType.STRING)
     private EventStatus status = EventStatus.DRAFT;
 
+    @JsonProperty("user_id")
+    @Column(name = "user_id", nullable = false)
+    private UUID userId;
+
  
     public Event(EventBuilder builder) {
         this.id = builder.getId();
@@ -53,6 +66,7 @@ public class Event {
         this.eventDate = builder.getEventDate();
         this.location = builder.getLocation();
         this.basePrice = builder.getBasePrice();
+        this.userId = builder.getUserId();
         this.status = EventStatus.DRAFT;
     }
 }
