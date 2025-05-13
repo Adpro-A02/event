@@ -1,18 +1,19 @@
 package id.ac.ui.cs.advprog.event.service;
 
-import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
-import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
-import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import id.ac.ui.cs.advprog.event.model.Event;
-import id.ac.ui.cs.advprog.event.repository.EventRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
+import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
+import id.ac.ui.cs.advprog.event.enums.EventStatus;
+import id.ac.ui.cs.advprog.event.model.Event;
+import id.ac.ui.cs.advprog.event.repository.EventRepository;
 
 @Service
 public class EventServiceImpl implements EventService {
@@ -109,7 +110,7 @@ public class EventServiceImpl implements EventService {
         event.setStatus(status);
         eventRepository.save(event);
 
-        // Pastikan data berisi status yang sesuai
+       
         return ResponseDTO.<EventStatus>builder()
                 .success(true)
                 .message("Event status changed to " + status)
