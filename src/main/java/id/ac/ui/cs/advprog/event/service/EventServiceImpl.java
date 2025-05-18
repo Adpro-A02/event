@@ -9,6 +9,9 @@ import java.util.UUID;
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
@@ -89,7 +92,15 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<Event> listEvents() {
-        return eventRepository.findAll();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String role = auth.getAuthorities().iterator().next().getAuthority();
+        UUID userId = UUID.fromString(auth.getPrincipal().toString());
+
+        if ("Organizer".equalsIgnoreCase(role)) {
+            return eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        } else {
+            return eventRepository.findByStatus(EventStatus.PUBLISHED);
+        }
     }
 
     @Override
@@ -137,9 +148,9 @@ public class EventServiceImpl implements EventService {
     }
 
 
-    @Override
-    public List<Event> getUpcomingEvents() {
 
-    return eventRepository.findByEventDateAfter(LocalDateTime.now());
+
+    public List<Event> getEventsByStatus(EventStatus status) {
+        return eventRepository.findByStatus(status);
     }
 }

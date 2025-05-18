@@ -87,7 +87,7 @@ public class EventController {
             );
         }
     }
-
+    @PreAuthorize("hasAuthority('Organizer')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
         eventService.deleteEvent(id);
@@ -100,7 +100,7 @@ public class EventController {
         List<Event> events = eventService.getEventByDate(date);
         return ResponseEntity.ok(events);
     }
-
+    @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/publish")
     public ResponseEntity<EventStatus> publishEvent(@PathVariable UUID id) {
         try {
@@ -110,7 +110,7 @@ public class EventController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
-
+    @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<EventStatus> cancelEvent(@PathVariable UUID id) {
         try {
@@ -120,7 +120,7 @@ public class EventController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
-
+    @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/complete")
     public ResponseEntity<EventStatus> completeEvent(@PathVariable UUID id) {
         try {
@@ -131,9 +131,5 @@ public class EventController {
         }
     }
 
-    @GetMapping("/upcoming")
-    public ResponseEntity<List<Event>> getUpcomingEvents() {
-        List<Event> events = eventService.getUpcomingEvents();
-        return ResponseEntity.ok(events);
-    }
+
 }

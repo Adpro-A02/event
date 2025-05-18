@@ -355,55 +355,9 @@ public class EventServiceImplTest {
         assertEquals("Event not found", result.getMessage());
         assertNull(result.getData());
     }
-     @Test
-    void testGetUpcomingEvents() {
-        // Arrange
-        List<Event> upcomingEvents = Arrays.asList(testEvent);
-        when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(upcomingEvents);
-
-        // Act
-        List<Event> result = eventService.getUpcomingEvents();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testEvent, result.get(0));
-        verify(eventRepository, times(1)).findByEventDateAfter(any(LocalDateTime.class));
-    }
-
-    @Test
-    void testGetUpcomingEvents_NoUpcomingEvents() {
-        // Arrange
-        List<Event> emptyList = Arrays.asList();
-        when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(emptyList);
-
-        // Act
-        List<Event> result = eventService.getUpcomingEvents();
-
-        // Assert
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-        verify(eventRepository, times(1)).findByEventDateAfter(any(LocalDateTime.class));
-    }
-
-    @Test
-    void testGetUpcomingEvents_MultipleEvents() {
-        // Arrange
-        Event anotherUpcomingEvent = new Event();
-        anotherUpcomingEvent.setId(UUID.randomUUID());
-        anotherUpcomingEvent.setTitle("Another Event");
-        anotherUpcomingEvent.setEventDate(LocalDateTime.now().plusMonths(2));
 
 
-        List<Event> upcomingEvents = Arrays.asList(testEvent, anotherUpcomingEvent);
-        when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(upcomingEvents);
 
-        // Act
-        List<Event> result = eventService.getUpcomingEvents();
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(2, result.size());
-        verify(eventRepository, times(1)).findByEventDateAfter(any(LocalDateTime.class));
-    }
+
 }

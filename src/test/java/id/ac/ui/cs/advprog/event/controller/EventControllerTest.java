@@ -123,15 +123,7 @@ public class EventControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
-    @Test
-    void getUpcomingEvents_success() throws Exception {
-        List<Event> events = List.of(new Event(), new Event(), new Event());
-        Mockito.when(eventService.getUpcomingEvents()).thenReturn(events);
 
-        mockMvc.perform(get("/api/events/upcoming"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3));
-    }
 
     @Test
     void publishEvent_success() throws Exception {

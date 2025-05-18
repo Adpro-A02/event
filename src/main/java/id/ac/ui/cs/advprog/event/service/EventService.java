@@ -22,7 +22,7 @@ public interface  EventService {
     ResponseDTO<EventStatus> completeEvent(UUID id);
     Event getEvent(UUID id);
     boolean validateEvent(UpdateEventDTO event);
-    List<Event> getUpcomingEvents(); 
+
    
 
 
