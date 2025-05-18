@@ -53,7 +53,7 @@ public class EventControllerTest {
         event.setBasePrice(100.0);
         event.setUserId(UUID.randomUUID());
 
-        Mockito.when(eventService.createEvent(Mockito.any(Event.class))).thenReturn(event);
+        Mockito.when(eventService.createEvent(Mockito.any(id.ac.ui.cs.advprog.event.dto.CreateEventDTO.class))).thenReturn(event);
 
         mockMvc.perform(post("/api/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -177,4 +177,123 @@ public class EventControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("\"COMPLETED\""));
     }
+    @Test
+    void createEvent_shouldReturnBadRequest_whenMissingFields() throws Exception {
+        Event event = new Event();
+        event.setLocation(""); // invalid
+        event.setTitle(null);  // invalid
+        event.setEventDate(null); // invalid
+
+        mockMvc.perform(post("/api/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().reason("Event date cannot be null"));
+    }
+
+    @Test
+    void getEventById_shouldReturnBadRequest_whenNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+        Mockito.when(eventService.getEvent(id)).thenThrow(new RuntimeException("Event not found"));
+
+        mockMvc.perform(get("/api/events/{id}", id))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string("Event not found"));
+    }
+
+    @Test
+    void updateEvent_shouldReturnBadRequest_whenInvalidInput() throws Exception {
+        UUID id = UUID.randomUUID();
+        UpdateEventDTO dto = new UpdateEventDTO();
+        dto.setTitle(""); // invalid
+
+        Mockito.when(eventService.updateEvent(Mockito.eq(id), Mockito.any(UpdateEventDTO.class)))
+                .thenThrow(new IllegalArgumentException("Invalid title"));
+
+        mockMvc.perform(put("/api/events/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().reason("Invalid title"));
+    }
+
+    @Test
+    void updateEvent_shouldReturnNotFound_whenEventDoesNotExist() throws Exception {
+        UUID id = UUID.randomUUID();
+        UpdateEventDTO dto = new UpdateEventDTO();
+        dto.setTitle("Any Title");
+
+        Mockito.when(eventService.updateEvent(Mockito.eq(id), Mockito.any(UpdateEventDTO.class)))
+                .thenThrow(new RuntimeException("Event not found"));
+
+        mockMvc.perform(put("/api/events/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(dto)))
+                .andExpect(status().isNotFound())
+                .andExpect(status().reason("Event not found"));
+    }
+
+    @Test
+    void publishEvent_shouldReturnNotFound_whenEventDoesNotExist() throws Exception {
+        UUID id = UUID.randomUUID();
+        Mockito.when(eventService.publishEvent(id)).thenThrow(new RuntimeException("Event not found"));
+
+        mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(status().isNotFound())
+                .andExpect(status().reason("Event not found"));
+    }
+
+    @Test
+    void cancelEvent_shouldReturnNotFound_whenEventDoesNotExist() throws Exception {
+        UUID id = UUID.randomUUID();
+        Mockito.when(eventService.cancelEvent(id)).thenThrow(new RuntimeException("Event not found"));
+
+        mockMvc.perform(patch("/api/events/{id}/cancel", id))
+                .andExpect(status().isNotFound())
+                .andExpect(status().reason("Event not found"));
+    }
+
+    @Test
+    void completeEvent_shouldReturnNotFound_whenEventDoesNotExist() throws Exception {
+        UUID id = UUID.randomUUID();
+        Mockito.when(eventService.completeEvent(id)).thenThrow(new RuntimeException("Event not found"));
+
+        mockMvc.perform(patch("/api/events/{id}/complete", id))
+                .andExpect(status().isNotFound())
+                .andExpect(status().reason("Event not found"));
+    }
+
+    @Test
+    void createEvent_shouldReturnBadRequest_whenTitleMissing() throws Exception {
+        Event event = new Event();
+        event.setEventDate(LocalDateTime.of(2025, 5, 13, 10, 30));
+        event.setTitle("   ");  // kosong setelah trim
+        event.setLocation("Some Location");
+        event.setBasePrice(50.0);
+        event.setUserId(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().reason("Event title cannot be null or empty"));
+    }
+
+    @Test
+    void createEvent_shouldReturnBadRequest_whenLocationMissing() throws Exception {
+        Event event = new Event();
+        event.setEventDate(LocalDateTime.of(2025, 5, 13, 10, 30));
+        event.setTitle("Valid Title");
+        event.setLocation(null);  // null location
+        event.setBasePrice(75.0);
+        event.setUserId(UUID.randomUUID());
+
+        mockMvc.perform(post("/api/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(event)))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().reason("Event location cannot be null or empty"));
+    }
+
+
 }

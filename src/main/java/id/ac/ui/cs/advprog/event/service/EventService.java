@@ -1,5 +1,6 @@
 package id.ac.ui.cs.advprog.event.service;
 
+import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
@@ -15,7 +16,7 @@ public interface  EventService {
     void deleteEvent(UUID id);
     List<Event> getEventByDate(LocalDate date);
     List<Event> listEvents();
-    Event createEvent(Event event);
+    Event createEvent(CreateEventDTO dto);
     ResponseDTO<EventStatus> cancelEvent(UUID id);
     ResponseDTO<EventStatus> publishEvent(UUID id);
     ResponseDTO<EventStatus> completeEvent(UUID id);

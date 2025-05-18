@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
+import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -41,18 +45,24 @@ public class EventServiceImplTest {
 
     @InjectMocks
     private EventServiceImpl eventService;
-   
 
+    private ArgumentCaptor<Event> eventCaptor;
     private Event testEvent;
+    private CreateEventDTO validEventDTO;
+    private Event savedEvent;
     private UUID eventId;
     private LocalDateTime eventDate;
+    private UUID userId;
+
+    private UUID userId1;
 
     @BeforeEach
     void setUp() {
         eventId = UUID.randomUUID();
         eventDate = LocalDateTime.now().plusMonths(4);
-        UUID userId = UUID.randomUUID();
-        
+        userId = UUID.randomUUID();
+        userId1 = UUID.randomUUID();
+
         testEvent = new Event();
         testEvent.setId(eventId);
         testEvent.setTitle("Test Event");
@@ -62,19 +72,85 @@ public class EventServiceImplTest {
         testEvent.setBasePrice(100.0);
         testEvent.setStatus(EventStatus.DRAFT);
         testEvent.setUserId(userId);
+
+        validEventDTO = new CreateEventDTO();
+        validEventDTO.setTitle("Test Event");
+        validEventDTO.setDescription("Test Description");
+        validEventDTO.setEventDate(eventDate);
+        validEventDTO.setLocation("Test Location");
+        validEventDTO.setBasePrice(100.0);
+        validEventDTO.setUserId(userId1);
+
+
+        savedEvent = new Event();
+        savedEvent.setId(UUID.randomUUID()); // Repository would generate this
+        savedEvent.setTitle(validEventDTO.getTitle());
+        savedEvent.setDescription(validEventDTO.getDescription());
+        savedEvent.setEventDate(validEventDTO.getEventDate());
+        savedEvent.setLocation(validEventDTO.getLocation());
+        savedEvent.setBasePrice(validEventDTO.getBasePrice());
+        savedEvent.setStatus(EventStatus.DRAFT); // Default status
+        savedEvent.setUserId(validEventDTO.getUserId());
     }
 
     @Test
     void testCreateEvent() {
-        when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
-        
-        Event result = eventService.createEvent(testEvent);
+        // Arrange
+        CreateEventDTO dto = new CreateEventDTO();
+        dto.setTitle("My Event");
+        dto.setDescription("Description");
+        dto.setEventDate(LocalDateTime.of(2025, 5, 18, 10, 0));
+        dto.setLocation("Jakarta");
+        dto.setBasePrice(100_000);
+        dto.setUserId(userId1);
+
+        Event savedEvent = new EventBuilder()
+                .setTitle(dto.getTitle())
+                .setDescription(dto.getDescription())
+                .setEventDate(dto.getEventDate())
+                .setLocation(dto.getLocation())
+                .setBasePrice(dto.getBasePrice())
+                .setUserId(dto.getUserId())
+                .build();
+
+        when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
+
+
+        Event result = eventService.createEvent(dto);
+
 
         assertNotNull(result);
-        assertEquals(testEvent.getTitle(), result.getTitle());
-        verify(eventRepository, times(1)).save(testEvent);
+        assertEquals(dto.getTitle(), result.getTitle());
+        verify(eventRepository, times(1)).save(any(Event.class));
     }
+    @Test
+    void createEvent_fail_emptyTitle() {
+        // Arrange
+        CreateEventDTO dto = new CreateEventDTO();
+        dto.setTitle("  ");  // Blank title
 
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            eventService.createEvent(dto);
+        });
+
+        assertEquals("Title cannot be empty", exception.getMessage());
+        verify(eventRepository, never()).save(any());
+    }
+    @Test
+    void createEvent_fail_nullTitle() {
+        // Arrange
+        CreateEventDTO dto = new CreateEventDTO();
+        dto.setTitle(null);  // Null title
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            eventService.createEvent(dto);
+        });
+
+        assertEquals("Title cannot be empty", exception.getMessage());
+        verify(eventRepository, never()).save(any());
+    }
     @Test
     void testUpdateEvent_Success() {
         UpdateEventDTO updateDTO = new UpdateEventDTO();
@@ -100,13 +176,13 @@ public class EventServiceImplTest {
     void testUpdateEvent_NotFound() {
         UpdateEventDTO updateDTO = new UpdateEventDTO();
         updateDTO.setTitle("Updated Title");
-        
+
         when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> {
             eventService.updateEvent(eventId, updateDTO);
         });
-        
+
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, never()).save(any(Event.class));
     }
@@ -126,7 +202,7 @@ public class EventServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> {
             eventService.updateEvent(eventId, updateDTO);
         });
-        
+
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, never()).save(any(Event.class));
     }
@@ -284,32 +360,32 @@ public class EventServiceImplTest {
         // Arrange
         List<Event> upcomingEvents = Arrays.asList(testEvent);
         when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(upcomingEvents);
-        
+
         // Act
         List<Event> result = eventService.getUpcomingEvents();
-        
+
         // Assert
         assertNotNull(result);
         assertEquals(1, result.size());
         assertEquals(testEvent, result.get(0));
         verify(eventRepository, times(1)).findByEventDateAfter(any(LocalDateTime.class));
     }
-    
+
     @Test
     void testGetUpcomingEvents_NoUpcomingEvents() {
         // Arrange
         List<Event> emptyList = Arrays.asList();
         when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(emptyList);
-        
+
         // Act
         List<Event> result = eventService.getUpcomingEvents();
-        
+
         // Assert
         assertNotNull(result);
         assertTrue(result.isEmpty());
         verify(eventRepository, times(1)).findByEventDateAfter(any(LocalDateTime.class));
     }
-    
+
     @Test
     void testGetUpcomingEvents_MultipleEvents() {
         // Arrange
@@ -317,14 +393,14 @@ public class EventServiceImplTest {
         anotherUpcomingEvent.setId(UUID.randomUUID());
         anotherUpcomingEvent.setTitle("Another Event");
         anotherUpcomingEvent.setEventDate(LocalDateTime.now().plusMonths(2));
-        
-        
+
+
         List<Event> upcomingEvents = Arrays.asList(testEvent, anotherUpcomingEvent);
         when(eventRepository.findByEventDateAfter(any(LocalDateTime.class))).thenReturn(upcomingEvents);
-        
+
         // Act
         List<Event> result = eventService.getUpcomingEvents();
-        
+
         // Assert
         assertNotNull(result);
         assertEquals(2, result.size());

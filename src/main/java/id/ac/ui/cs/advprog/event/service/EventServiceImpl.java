@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
+import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,11 +23,27 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private EventRepository eventRepository;
 
+
     @Override
-    public Event createEvent(Event event) {
-        
+    public Event createEvent(CreateEventDTO dto) {
+        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Title cannot be empty");
+        }
+
+
+        Event event = new EventBuilder()
+                .setTitle(dto.getTitle())
+                .setDescription(dto.getDescription())
+                .setEventDate(dto.getEventDate())
+                .setLocation(dto.getLocation())
+                .setBasePrice(dto.getBasePrice())
+                .setUserId(dto.getUserId())
+                .build();
+
+
         return eventRepository.save(event);
     }
+
 
     @Override
     public UpdateEventDTO updateEvent(UUID id, UpdateEventDTO dto) {

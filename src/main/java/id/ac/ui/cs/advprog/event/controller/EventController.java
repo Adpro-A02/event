@@ -1,13 +1,18 @@
 package id.ac.ui.cs.advprog.event.controller;
 
+import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
+//import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
 import id.ac.ui.cs.advprog.event.service.EventService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -21,24 +26,33 @@ public class EventController {
     @Autowired
     private EventService eventService;
 
+    @PreAuthorize("hasAuthority('Organizer')")
     @PostMapping
-    public ResponseEntity<Event> createEvent(@RequestBody Event event) {
-        // Validate required fields
-        if (event.getEventDate() == null) {
+    public ResponseEntity<Event> createEvent(@RequestBody CreateEventDTO createEventDTO) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+
+        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
+
+
+        createEventDTO.setUserId(userId);
+
+        if (createEventDTO.getEventDate() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event date cannot be null");
         }
-        if (event.getTitle() == null || event.getTitle().trim().isEmpty()) {
+        if (createEventDTO.getTitle() == null || createEventDTO.getTitle().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event title cannot be null or empty");
         }
-        if (event.getLocation() == null || event.getLocation().trim().isEmpty()) {
+        if (createEventDTO.getLocation() == null || createEventDTO.getLocation().trim().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event location cannot be null or empty");
         }
 
-
-        Event createdEvent = eventService.createEvent(event);
-        return new ResponseEntity<>(createdEvent, HttpStatus.OK);
+        Event createdEvent = eventService.createEvent(createEventDTO);
+        return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
     }
 
+ 
     @GetMapping
     public ResponseEntity<List<Event>> getAllEvents() {
         List<Event> events = eventService.listEvents();
@@ -52,13 +66,12 @@ public class EventController {
             Event event = eventService.getEvent(id);
             return ResponseEntity.ok(event);
         } catch (RuntimeException e) {
-            if (e.getMessage().contains("Event not found")) {
+            
                 Map<String, String> responseBody = new HashMap<>();
                 responseBody.put("message", "Event not found");
                 return ResponseEntity.badRequest().body(e.getMessage());
 
-            }
-            throw e;
+
         }
     }
 
