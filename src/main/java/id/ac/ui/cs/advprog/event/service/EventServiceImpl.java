@@ -7,11 +7,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
+import id.ac.ui.cs.advprog.event.exception.ResourceNotFoundException;
 import id.ac.ui.cs.advprog.event.model.EventBuilder;
+import jakarta.persistence.EntityNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
@@ -22,7 +25,7 @@ import id.ac.ui.cs.advprog.event.repository.EventRepository;
 
 @Service
 public class EventServiceImpl implements EventService {
-
+    private static final Logger logger = LoggerFactory.getLogger(EventServiceImpl.class);
     @Autowired
     private EventRepository eventRepository;
 
@@ -50,11 +53,22 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public UpdateEventDTO updateEvent(UUID id, UpdateEventDTO dto) {
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Event not found"));
 
-        if(!validateEvent(dto)){
-            throw new IllegalArgumentException("Event tidak valid untuk di-update.");
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+        logger.debug("{}",event.getDescription());
+        if (event.getStatus() == EventStatus.PUBLISHED) {
+
+            throw new IllegalStateException("Event yang sudah published tidak bisa diubah.");
+        }
+        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
+            throw new IllegalArgumentException("Title cannot be empty.");
+        }
+        if (dto.getLocation() == null || dto.getLocation().isBlank()) {
+            throw new IllegalArgumentException("Location cannot be empty.");
+        }
+        if (dto.getEventDate() == null) {
+            throw new IllegalArgumentException("Event date is required.");
         }
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
@@ -110,6 +124,22 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public ResponseDTO<EventStatus> publishEvent(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime eventDate = event.getEventDate();
+
+
+        if (eventDate.isBefore(now)) {
+            return new ResponseDTO<>(false, "Cannot publish event with a past date", null);
+        }
+
+
+        if (eventDate.isBefore(now.plusMonths(3))) {
+            return new ResponseDTO<>(false, "Event must be scheduled at least 3 months from now to be published", null);
+        }
+
         return changeStatus(id, EventStatus.PUBLISHED);
     }
 
@@ -123,6 +153,7 @@ public class EventServiceImpl implements EventService {
     public Event getEvent(UUID id) {
         return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
     }
+
 
     private ResponseDTO<EventStatus> changeStatus(UUID id, EventStatus status) {
         Optional<Event> optionalEvent = eventRepository.findById(id);
@@ -150,7 +181,5 @@ public class EventServiceImpl implements EventService {
 
 
 
-    public List<Event> getEventsByStatus(EventStatus status) {
-        return eventRepository.findByStatus(status);
-    }
+
 }

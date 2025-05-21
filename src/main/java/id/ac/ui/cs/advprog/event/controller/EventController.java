@@ -1,11 +1,11 @@
 package id.ac.ui.cs.advprog.event.controller;
 
-import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
-import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
-import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import id.ac.ui.cs.advprog.event.model.Event;
-//import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
-import id.ac.ui.cs.advprog.event.service.EventService;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -13,16 +13,32 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
-import java.util.*;
+import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
+import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
+import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
+import id.ac.ui.cs.advprog.event.enums.EventStatus;
+import id.ac.ui.cs.advprog.event.exception.ResourceNotFoundException;
+import id.ac.ui.cs.advprog.event.model.Event;
+import id.ac.ui.cs.advprog.event.service.EventService;
+import jakarta.persistence.EntityNotFoundException;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
-
+    private static final Logger logger = LoggerFactory.getLogger(EventController.class);
     @Autowired
     private EventService eventService;
 
@@ -38,21 +54,13 @@ public class EventController {
 
         createEventDTO.setUserId(userId);
 
-        if (createEventDTO.getEventDate() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event date cannot be null");
-        }
-        if (createEventDTO.getTitle() == null || createEventDTO.getTitle().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event title cannot be null or empty");
-        }
-        if (createEventDTO.getLocation() == null || createEventDTO.getLocation().trim().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event location cannot be null or empty");
-        }
+        validateCreateEventDTO(createEventDTO);
 
         Event createdEvent = eventService.createEvent(createEventDTO);
         return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
     }
 
- 
+
     @GetMapping
     public ResponseEntity<List<Event>> getAllEvents() {
         List<Event> events = eventService.listEvents();
@@ -66,25 +74,28 @@ public class EventController {
             Event event = eventService.getEvent(id);
             return ResponseEntity.ok(event);
         } catch (RuntimeException e) {
-            
-                Map<String, String> responseBody = new HashMap<>();
-                responseBody.put("message", "Event not found");
-                return ResponseEntity.badRequest().body(e.getMessage());
+
+            throw new IllegalArgumentException("Event not found");
+
 
 
         }
     }
-
+    @PreAuthorize("hasAuthority('Organizer')")
     @PutMapping("/{id}")
-    public ResponseEntity<UpdateEventDTO> updateEvent(@PathVariable UUID id, @RequestBody UpdateEventDTO dto) {
+    public ResponseEntity<UpdateEventDTO> updateEvent(@PathVariable("id") UUID id, @RequestBody UpdateEventDTO dto) {
         try {
+
             UpdateEventDTO updatedEvent = eventService.updateEvent(id, dto);
+
             return ResponseEntity.ok(updatedEvent);
-        } catch (RuntimeException e) {
-            throw new ResponseStatusException(
-                    e instanceof IllegalArgumentException ? HttpStatus.BAD_REQUEST : HttpStatus.NOT_FOUND,
-                    e.getMessage()
-            );
+        } catch (EntityNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid event data: " + e.getMessage());
+        } catch (Exception e) {
+
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred");
         }
     }
     @PreAuthorize("hasAuthority('Organizer')")
@@ -102,17 +113,24 @@ public class EventController {
     }
     @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/publish")
-    public ResponseEntity<EventStatus> publishEvent(@PathVariable UUID id) {
+    public ResponseEntity<EventStatus> publishEvent(@PathVariable("id") UUID id) {
         try {
-            EventStatus event = eventService.publishEvent(id).getData();
-            return ResponseEntity.ok(event);
-        } catch (RuntimeException e) {
+            ResponseDTO<EventStatus> response = eventService.publishEvent(id);
+            if (!response.isSuccess()) {
+
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, response.getMessage());
+            }
+            return ResponseEntity.ok(response.getData());
+
+        } catch (ResourceNotFoundException e) {
+
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
+
     @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/cancel")
-    public ResponseEntity<EventStatus> cancelEvent(@PathVariable UUID id) {
+    public ResponseEntity<EventStatus> cancelEvent(@PathVariable("id") UUID id) {
         try {
             EventStatus event = eventService.cancelEvent(id).getData();
             return ResponseEntity.ok(event);
@@ -122,12 +140,24 @@ public class EventController {
     }
     @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/complete")
-    public ResponseEntity<EventStatus> completeEvent(@PathVariable UUID id) {
+    public ResponseEntity<EventStatus> completeEvent(@PathVariable("id") UUID id) {
         try {
             EventStatus event = eventService.completeEvent(id).getData();
             return ResponseEntity.ok(event);
         } catch (RuntimeException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    private void validateCreateEventDTO(CreateEventDTO dto) {
+        if (dto.getEventDate() == null) {
+            throw new IllegalArgumentException("Event date cannot be null");
+        }
+        if (dto.getTitle() == null || dto.getTitle().trim().isEmpty()) {
+            throw new IllegalArgumentException("Event title cannot be null or empty");
+        }
+        if (dto.getLocation() == null || dto.getLocation().trim().isEmpty()) {
+            throw new IllegalArgumentException("Event location cannot be null or empty");
         }
     }
 

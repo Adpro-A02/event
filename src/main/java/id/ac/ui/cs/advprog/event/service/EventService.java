@@ -23,6 +23,7 @@ public interface  EventService {
     Event getEvent(UUID id);
     boolean validateEvent(UpdateEventDTO event);
 
+
    
 
 

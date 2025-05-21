@@ -1,5 +1,7 @@
 package id.ac.ui.cs.advprog.event.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -26,7 +28,8 @@ public class UpdateEventDTO {
 
     private String description;
 
-    
+    @JsonProperty("event_date")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @Future(message = "Event date harus di masa depan")
     private LocalDateTime eventDate;
 
