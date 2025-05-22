@@ -68,4 +68,4 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i $HOME/key.pem ubuntu@ec2-52-206-2-172.compute-1.amazonaws.com '
           sudo systemctl restart event-sphere-event &&
           sudo systemctl restart nginx
-        '
+        ' 
