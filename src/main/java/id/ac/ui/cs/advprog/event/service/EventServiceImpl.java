@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
+import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.exception.ResourceNotFoundException;
 import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,7 +32,7 @@ public class EventServiceImpl implements EventService {
 
 
     @Override
-    public Event createEvent(CreateEventDTO dto) {
+    public Event createEvent(CreateEventDTO dto,UUID userId) {
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
             throw new IllegalArgumentException("Title cannot be empty");
         }
@@ -43,7 +44,7 @@ public class EventServiceImpl implements EventService {
                 .setEventDate(dto.getEventDate())
                 .setLocation(dto.getLocation())
                 .setBasePrice(dto.getBasePrice())
-                .setUserId(dto.getUserId())
+                .setUserId(userId)
                 .build();
 
 
@@ -55,11 +56,11 @@ public class EventServiceImpl implements EventService {
     public UpdateEventDTO updateEvent(UUID id, UpdateEventDTO dto) {
 
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Event not found"));
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
         logger.debug("{}",event.getDescription());
         if (event.getStatus() == EventStatus.PUBLISHED) {
 
-            throw new IllegalStateException("Event yang sudah published tidak bisa diubah.");
+            throw new IllegalArgumentException("Published event restriction cannot be updated");
         }
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
             throw new IllegalArgumentException("Title cannot be empty.");
@@ -95,6 +96,11 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public void deleteEvent(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+        if(event.getStatus() == EventStatus.PUBLISHED){
+            throw new IllegalArgumentException("Event refuse to be deleted");
+        }
         eventRepository.deleteById(id);
     }
 
@@ -119,13 +125,18 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public ResponseDTO<EventStatus> cancelEvent(UUID id) {
-        return changeStatus(id, EventStatus.CANCELLED);
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+
+
+
+        return changeStatus(event, EventStatus.CANCELLED);
     }
 
     @Override
     public ResponseDTO<EventStatus> publishEvent(UUID id) {
         Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime eventDate = event.getEventDate();
@@ -140,41 +151,34 @@ public class EventServiceImpl implements EventService {
             return new ResponseDTO<>(false, "Event must be scheduled at least 3 months from now to be published", null);
         }
 
-        return changeStatus(id, EventStatus.PUBLISHED);
+        return changeStatus(event, EventStatus.PUBLISHED);
     }
 
     @Override
     public ResponseDTO<EventStatus> completeEvent(UUID id) {
-        return changeStatus(id, EventStatus.COMPLETED);
+
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new EventNotFoundException("Event not found"));
+        return changeStatus(event, EventStatus.COMPLETED);
     }
 
 
     @Override
     public Event getEvent(UUID id) {
-        return eventRepository.findById(id).orElseThrow(() -> new RuntimeException("Event not found"));
+        return eventRepository.findById(id).orElseThrow(() -> new EventNotFoundException("Event not found"));
     }
 
 
-    private ResponseDTO<EventStatus> changeStatus(UUID id, EventStatus status) {
-        Optional<Event> optionalEvent = eventRepository.findById(id);
+    private ResponseDTO<EventStatus> changeStatus(Event event, EventStatus status) {
 
-        if (optionalEvent.isEmpty()) {
-            return ResponseDTO.<EventStatus>builder()
-                    .success(false)
-                    .message("Event not found")
-                    .data(null)  
-                    .build();
-        }
-
-        Event event = optionalEvent.get();
         event.setStatus(status);
         eventRepository.save(event);
 
-       
+
         return ResponseDTO.<EventStatus>builder()
                 .success(true)
                 .message("Event status changed to " + status)
-                .data(status)  
+                .data(status)
                 .build();
     }
 

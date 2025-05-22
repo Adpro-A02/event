@@ -59,7 +59,7 @@ dependencies {
     implementation ("org.springframework.boot:spring-boot-starter-web")
 
     testImplementation ("org.springframework.boot:spring-boot-starter-test")
-
+    implementation("io.github.cdimascio:dotenv-java:3.2.0")
 }
 
 tasks.register<Test>("unitTest") {

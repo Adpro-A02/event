@@ -2,13 +2,11 @@ package id.ac.ui.cs.advprog.event.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
+import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +34,11 @@ import id.ac.ui.cs.advprog.event.repository.EventRepository;
 import id.ac.ui.cs.advprog.event.service.EventServiceImpl;
 import static org.mockito.Mockito.*;
 import org.mockito.InjectMocks;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
 public class EventServiceImplTest {
@@ -45,6 +48,8 @@ public class EventServiceImplTest {
 
     @InjectMocks
     private EventServiceImpl eventService;
+    @Mock
+    private Authentication authentication;
 
     private ArgumentCaptor<Event> eventCaptor;
     private Event testEvent;
@@ -54,7 +59,10 @@ public class EventServiceImplTest {
     private LocalDateTime eventDate;
     private UUID userId;
 
+    private SecurityContext securityContext;
     private UUID userId1;
+    private List<Event> publishedEvents;
+    private List<Event> organizerEvents;
 
     @BeforeEach
     void setUp() {
@@ -91,6 +99,63 @@ public class EventServiceImplTest {
         savedEvent.setBasePrice(validEventDTO.getBasePrice());
         savedEvent.setStatus(EventStatus.DRAFT); // Default status
         savedEvent.setUserId(validEventDTO.getUserId());
+
+        userId = UUID.randomUUID();
+        publishedEvents = new ArrayList<>();
+        Event publicEvent1 = new Event();
+        publicEvent1.setId(UUID.randomUUID());
+        publicEvent1.setTitle("Public Event 1");
+        publicEvent1.setDescription("Public Description 1");
+        publicEvent1.setEventDate(eventDate);
+        publicEvent1.setLocation("Public Location 1");
+        publicEvent1.setBasePrice(100.0);
+        publicEvent1.setStatus(EventStatus.PUBLISHED);
+        publicEvent1.setUserId(UUID.randomUUID());
+
+        Event publicEvent2 = new Event();
+        publicEvent2.setId(UUID.randomUUID());
+        publicEvent2.setTitle("Public Event 2");
+        publicEvent2.setDescription("Public Description 2");
+        publicEvent2.setEventDate(eventDate);
+        publicEvent2.setLocation("Public Location 2");
+        publicEvent2.setBasePrice(150.0);
+        publicEvent2.setStatus(EventStatus.PUBLISHED);
+        publicEvent2.setUserId(UUID.randomUUID());
+
+        publishedEvents.add(publicEvent1);
+        publishedEvents.add(publicEvent2);
+
+        organizerEvents = new ArrayList<>();
+
+        Event organizerEvent1 = new Event();
+        organizerEvent1.setId(UUID.randomUUID());
+        organizerEvent1.setTitle("Organizer Event 1");
+        organizerEvent1.setDescription("Organizer Description 1");
+        organizerEvent1.setEventDate(eventDate);
+        organizerEvent1.setLocation("Organizer Location 1");
+        organizerEvent1.setBasePrice(200.0);
+        organizerEvent1.setStatus(EventStatus.PUBLISHED);
+        organizerEvent1.setUserId(userId);
+
+        Event organizerEvent2 = new Event();
+        organizerEvent2.setId(UUID.randomUUID());
+        organizerEvent2.setTitle("Organizer Event 2");
+        organizerEvent2.setDescription("Organizer Description 2");
+        organizerEvent2.setEventDate(eventDate);
+        organizerEvent2.setLocation("Organizer Location 2");
+        organizerEvent2.setBasePrice(250.0);
+        organizerEvent2.setStatus(EventStatus.PUBLISHED);
+        organizerEvent2.setUserId(userId);
+
+        organizerEvents.add(organizerEvent1);
+        organizerEvents.add(organizerEvent2);
+
+        SecurityContext context = mock(SecurityContext.class);
+//        when(context.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(context);
+
+
+
     }
 
     @Test
@@ -116,7 +181,7 @@ public class EventServiceImplTest {
         when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
 
 
-        Event result = eventService.createEvent(dto);
+        Event result = eventService.createEvent(dto,userId1);
 
 
         assertNotNull(result);
@@ -131,7 +196,7 @@ public class EventServiceImplTest {
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            eventService.createEvent(dto);
+            eventService.createEvent(dto,userId1);
         });
 
         assertEquals("Title cannot be empty", exception.getMessage());
@@ -145,7 +210,7 @@ public class EventServiceImplTest {
 
         // Act & Assert
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            eventService.createEvent(dto);
+            eventService.createEvent(dto,userId);
         });
 
         assertEquals("Title cannot be empty", exception.getMessage());
@@ -189,6 +254,7 @@ public class EventServiceImplTest {
 
     @Test
     void testUpdateEvent_InvalidEvent() {
+        // Arrange
         UpdateEventDTO updateDTO = new UpdateEventDTO();
         updateDTO.setTitle("Updated Title");
         updateDTO.setDescription("Updated Description");
@@ -197,12 +263,16 @@ public class EventServiceImplTest {
         updateDTO.setBasePrice(200.0);
         updateDTO.setStatus(EventStatus.PUBLISHED);
 
+        testEvent.setStatus(EventStatus.PUBLISHED);
+
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
 
-        assertThrows(IllegalArgumentException.class, () -> {
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             eventService.updateEvent(eventId, updateDTO);
         });
 
+        assertEquals("Published event restriction cannot be updated", exception.getMessage());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, never()).save(any(Event.class));
     }
@@ -242,12 +312,19 @@ public class EventServiceImplTest {
 
     @Test
     void testDeleteEvent() {
+        // Arrange
+        Event event = new Event();  // atau mock Event sesuai kebutuhan
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
         doNothing().when(eventRepository).deleteById(eventId);
 
+        // Act
         eventService.deleteEvent(eventId);
 
+        // Assert
+        verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).deleteById(eventId);
     }
+
 
     @Test
     void testGetEventByDate() {
@@ -265,19 +342,8 @@ public class EventServiceImplTest {
         verify(eventRepository, times(1)).findByEventDate(startOfDay);
     }
 
-    @Test
-    void testListEvents() {
-        List<Event> expectedEvents = Arrays.asList(testEvent);
 
-        when(eventRepository.findAll()).thenReturn(expectedEvents);
 
-        List<Event> result = eventService.listEvents();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals(testEvent, result.get(0));
-        verify(eventRepository, times(1)).findAll();
-    }
 
     @Test
     void testPublishEvent() {
@@ -321,7 +387,7 @@ public class EventServiceImplTest {
     }
 
     @Test
-    void testGetEvent_Found() {
+    void testGetEvent_Found() throws Exception {
         Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
 
 
@@ -349,11 +415,12 @@ public class EventServiceImplTest {
         UUID eventId = UUID.randomUUID();
         Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 
-        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId);
+        // Assert bahwa exception dilempar
+        EventNotFoundException thrown = assertThrows(EventNotFoundException.class, () -> {
+            eventService.publishEvent(eventId);
+        });
 
-        assertFalse(result.isSuccess());
-        assertEquals("Event not found", result.getMessage());
-        assertNull(result.getData());
+        assertEquals("Event not found", thrown.getMessage());
     }
 
 

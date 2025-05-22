@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,19 +46,28 @@ public class EventController {
     @PreAuthorize("hasAuthority('Organizer')")
     @PostMapping
     public ResponseEntity<Event> createEvent(@RequestBody CreateEventDTO createEventDTO) {
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-
-        UUID userId = UUID.fromString(authentication.getPrincipal().toString());
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
 
-        createEventDTO.setUserId(userId);
+            String userIdStr = authentication.getName();
+//            logger.debug("ini user id{}",principal);
+            UUID userId;
+            try {
+                userId = UUID.fromString(userIdStr);
+                logger.debug("ini user id{}",userId.toString());
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("User ID bukan UUID valid");
+            }
 
-        validateCreateEventDTO(createEventDTO);
+//            createEventDTO.setUserId(userId);
+            validateCreateEventDTO(createEventDTO);
+            Event createdEvent = eventService.createEvent(createEventDTO,userId);
 
-        Event createdEvent = eventService.createEvent(createEventDTO);
-        return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
+            return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Gagal membuat event: " + e.getMessage(), e);
+        }
     }
 
 
@@ -69,13 +79,13 @@ public class EventController {
 
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getEventById(@PathVariable UUID id) {
+    public ResponseEntity<?> getEventById(@PathVariable("id") UUID id) {
         try {
             Event event = eventService.getEvent(id);
             return ResponseEntity.ok(event);
         } catch (RuntimeException e) {
 
-            throw new IllegalArgumentException("Event not found");
+            throw new EventNotFoundException("Event not found");
 
 
 
@@ -90,27 +100,29 @@ public class EventController {
 
             return ResponseEntity.ok(updatedEvent);
         } catch (EntityNotFoundException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event not found");
+            throw new EventNotFoundException("Event not found");
         } catch (IllegalArgumentException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid event data: " + e.getMessage());
-        } catch (Exception e) {
-
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred");
+            throw new IllegalArgumentException("Gagal membuat event: " + e.getMessage(), e);
         }
     }
-    @PreAuthorize("hasAuthority('Organizer')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
-        eventService.deleteEvent(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deleteEvent(@PathVariable("id") UUID id) {
+        try {
+            eventService.deleteEvent(id);
+            return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            throw new EventNotFoundException("Event not found");
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Event refuse to delete");
+        }
     }
 
     @GetMapping("/date/{date}")
-    public ResponseEntity<List<Event>> getEventsByDate(
-            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    public ResponseEntity<List<Event>> getEventsByDate(@PathVariable("date") LocalDate date) {
         List<Event> events = eventService.getEventByDate(date);
         return ResponseEntity.ok(events);
     }
+
     @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/publish")
     public ResponseEntity<EventStatus> publishEvent(@PathVariable("id") UUID id) {
@@ -118,13 +130,13 @@ public class EventController {
             ResponseDTO<EventStatus> response = eventService.publishEvent(id);
             if (!response.isSuccess()) {
 
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, response.getMessage());
+                throw new IllegalArgumentException("Event not published");
             }
             return ResponseEntity.ok(response.getData());
 
-        } catch (ResourceNotFoundException e) {
+        } catch (EventNotFoundException e) {
 
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+            throw new EventNotFoundException("Event not found");
         }
     }
 
@@ -134,8 +146,8 @@ public class EventController {
         try {
             EventStatus event = eventService.cancelEvent(id).getData();
             return ResponseEntity.ok(event);
-        } catch (RuntimeException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (EventNotFoundException e) {
+            throw new EventNotFoundException("Event not found");
         }
     }
     @PreAuthorize("hasAuthority('Organizer')")
@@ -144,8 +156,8 @@ public class EventController {
         try {
             EventStatus event = eventService.completeEvent(id).getData();
             return ResponseEntity.ok(event);
-        } catch (RuntimeException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (EventNotFoundException e) {
+            throw new EventNotFoundException("Event not found");
         }
     }
 

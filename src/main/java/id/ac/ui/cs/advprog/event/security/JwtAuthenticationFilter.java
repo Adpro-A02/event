@@ -47,12 +47,12 @@
                      String userId = jwtTokenProvider.getUserIdFromJWT(token);
                      String role = jwtTokenProvider.getRoleFromJWT(token);
 
-                     logger.debug("JWT is valid. userId: {}, role: {}", userId, role);
+
 
                      List<SimpleGrantedAuthority> authorities =
                              List.of(new SimpleGrantedAuthority(role));
 
-                     logger.debug("Granted Authorities: {}", authorities);
+
 
                      UsernamePasswordAuthenticationToken auth =
                              new UsernamePasswordAuthenticationToken(userId, null, authorities);
