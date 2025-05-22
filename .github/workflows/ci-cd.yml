@@ -65,7 +65,7 @@ jobs:
 
     - name: Connect SSH and Restart Services
       run: |
-        ssh -o StrictHostKeyChecking=no -i $HOME/key.pem ubuntu@${{ secrets.DEPLOY_HOST }} '
-          sudo systemctl restart eventsphere &&
+        ssh -o StrictHostKeyChecking=no -i $HOME/key.pem ubuntu@ec2-52-206-2-172.compute-1.amazonaws.com '
+          sudo systemctl restart event-sphere-event &&
           sudo systemctl restart nginx
         '
