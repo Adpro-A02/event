@@ -55,7 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class EventControllerTest {
     private static final Logger logger = LoggerFactory.getLogger(EventControllerTest.class);
 
-    @MockBean
+    @Mock
     private EventService eventService;
 
     @Autowired
