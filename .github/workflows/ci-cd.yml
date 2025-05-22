@@ -1,4 +1,4 @@
-name: CI/CD for Spring Boot with Maven
+name: CI/CD for Spring Boot with Gradle
 
 on:
   push:
@@ -20,14 +20,17 @@ jobs:
         distribution: 'adopt'
         java-version: '21'
 
-    - name: Build with Maven
-      run: mvn clean package
+    - name: Grant execute permission for gradlew
+      run: chmod +x ./gradlew
+
+    - name: Build with Gradle
+      run: ./gradlew clean build
 
     - name: Archive production artifacts
       uses: actions/upload-artifact@v4
       with:
         name: packaged-application
-        path: target/*.jar
+        path: build/libs/*.jar
 
   deploy:
     needs: build
@@ -38,7 +41,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: packaged-application
-        path: target/
+        path: build/libs/
 
     - name: Setup key
       id: setup-key
@@ -51,19 +54,18 @@ jobs:
     - name: Test Secrets
       run: echo "DEPLOY_HOST is ${{ secrets.DEPLOY_HOST }}"
 
-
     - name: Copy JAR to EC2
       uses: appleboy/scp-action@master
       with:
         host: ${{ secrets.DEPLOY_HOST }}
         username: ubuntu
         key: ${{ secrets.DEPLOY_KEY }}
-        source: "target/*.jar"
+        source: "build/libs/*.jar"
         target: "/home/ubuntu/deployment/"
 
     - name: Connect SSH and Restart Services
       run: |
-        ssh -o StrictHostKeyChecking=no -i $HOME/key.pem  ubuntu@ec2-52-206-2-172.compute-1.amazonaws.com '
+        ssh -o StrictHostKeyChecking=no -i $HOME/key.pem ubuntu@${{ secrets.DEPLOY_HOST }} '
           sudo systemctl restart eventsphere &&
           sudo systemctl restart nginx
         '
