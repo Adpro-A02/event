@@ -3,6 +3,7 @@ package id.ac.ui.cs.advprog.event.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
@@ -89,77 +90,16 @@ public class EventServiceImplTest {
         validEventDTO.setBasePrice(100.0);
         validEventDTO.setUserId(userId1);
 
-
-        savedEvent = new Event();
-        savedEvent.setId(UUID.randomUUID()); // Repository would generate this
-        savedEvent.setTitle(validEventDTO.getTitle());
-        savedEvent.setDescription(validEventDTO.getDescription());
-        savedEvent.setEventDate(validEventDTO.getEventDate());
-        savedEvent.setLocation(validEventDTO.getLocation());
-        savedEvent.setBasePrice(validEventDTO.getBasePrice());
-        savedEvent.setStatus(EventStatus.DRAFT); // Default status
-        savedEvent.setUserId(validEventDTO.getUserId());
-
-        userId = UUID.randomUUID();
-        publishedEvents = new ArrayList<>();
-        Event publicEvent1 = new Event();
-        publicEvent1.setId(UUID.randomUUID());
-        publicEvent1.setTitle("Public Event 1");
-        publicEvent1.setDescription("Public Description 1");
-        publicEvent1.setEventDate(eventDate);
-        publicEvent1.setLocation("Public Location 1");
-        publicEvent1.setBasePrice(100.0);
-        publicEvent1.setStatus(EventStatus.PUBLISHED);
-        publicEvent1.setUserId(UUID.randomUUID());
-
-        Event publicEvent2 = new Event();
-        publicEvent2.setId(UUID.randomUUID());
-        publicEvent2.setTitle("Public Event 2");
-        publicEvent2.setDescription("Public Description 2");
-        publicEvent2.setEventDate(eventDate);
-        publicEvent2.setLocation("Public Location 2");
-        publicEvent2.setBasePrice(150.0);
-        publicEvent2.setStatus(EventStatus.PUBLISHED);
-        publicEvent2.setUserId(UUID.randomUUID());
-
-        publishedEvents.add(publicEvent1);
-        publishedEvents.add(publicEvent2);
-
-        organizerEvents = new ArrayList<>();
-
-        Event organizerEvent1 = new Event();
-        organizerEvent1.setId(UUID.randomUUID());
-        organizerEvent1.setTitle("Organizer Event 1");
-        organizerEvent1.setDescription("Organizer Description 1");
-        organizerEvent1.setEventDate(eventDate);
-        organizerEvent1.setLocation("Organizer Location 1");
-        organizerEvent1.setBasePrice(200.0);
-        organizerEvent1.setStatus(EventStatus.PUBLISHED);
-        organizerEvent1.setUserId(userId);
-
-        Event organizerEvent2 = new Event();
-        organizerEvent2.setId(UUID.randomUUID());
-        organizerEvent2.setTitle("Organizer Event 2");
-        organizerEvent2.setDescription("Organizer Description 2");
-        organizerEvent2.setEventDate(eventDate);
-        organizerEvent2.setLocation("Organizer Location 2");
-        organizerEvent2.setBasePrice(250.0);
-        organizerEvent2.setStatus(EventStatus.PUBLISHED);
-        organizerEvent2.setUserId(userId);
-
-        organizerEvents.add(organizerEvent1);
-        organizerEvents.add(organizerEvent2);
-
         SecurityContext context = mock(SecurityContext.class);
-//        when(context.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(context);
 
 
 
     }
 
+
     @Test
-    void testCreateEvent() {
+    void testCreateEventAsync() throws Exception {
         // Arrange
         CreateEventDTO dto = new CreateEventDTO();
         dto.setTitle("My Event");
@@ -181,13 +121,15 @@ public class EventServiceImplTest {
         when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
 
 
-        Event result = eventService.createEvent(dto,userId1);
+        CompletableFuture<Event> futureResult = eventService.createEvent(dto, userId1);
+        Event result = futureResult.get(); // Wait for the result
 
 
         assertNotNull(result);
         assertEquals(dto.getTitle(), result.getTitle());
         verify(eventRepository, times(1)).save(any(Event.class));
     }
+
     @Test
     void createEvent_fail_emptyTitle() {
         // Arrange

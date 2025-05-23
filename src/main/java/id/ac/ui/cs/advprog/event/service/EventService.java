@@ -10,13 +10,14 @@ import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public interface  EventService {
     UpdateEventDTO updateEvent(UUID id, UpdateEventDTO updateEventDTO);
     void deleteEvent(UUID id);
     List<Event> getEventByDate(LocalDate date);
     List<Event> listEvents();
-    Event createEvent(CreateEventDTO dto,UUID userId);
+    CompletableFuture<Event> createEvent(CreateEventDTO dto, UUID userId);
     ResponseDTO<EventStatus> cancelEvent(UUID id);
     ResponseDTO<EventStatus> publishEvent(UUID id);
     ResponseDTO<EventStatus> completeEvent(UUID id);

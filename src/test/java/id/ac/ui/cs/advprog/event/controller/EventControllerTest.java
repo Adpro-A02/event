@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -94,7 +95,9 @@ public class EventControllerTest {
         mockEvent.setLocation(createEventDTO.getLocation());
         mockEvent.setBasePrice(createEventDTO.getBasePrice());
 
-        when(eventService.createEvent(any(CreateEventDTO.class), eq(userId))).thenReturn(mockEvent);
+        when(eventService.createEvent(any(CreateEventDTO.class), eq(userId)))
+                .thenReturn(CompletableFuture.completedFuture(mockEvent));
+
 
         mockMvc.perform(post("/api/events")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -348,7 +351,9 @@ public class EventControllerTest {
         mockEvent.setEventDate(validDto.getEventDate());
         mockEvent.setBasePrice(validDto.getBasePrice());
 
-        when(eventService.createEvent(any(CreateEventDTO.class), eq(userUuid))).thenReturn(mockEvent);
+        when(eventService.createEvent(any(CreateEventDTO.class), eq(userUuid)))
+                .thenReturn(CompletableFuture.completedFuture(mockEvent));
+
 
         mockMvc.perform(post("/api/events")
                         .contentType(MediaType.APPLICATION_JSON)
