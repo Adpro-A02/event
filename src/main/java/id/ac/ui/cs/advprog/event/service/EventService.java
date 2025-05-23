@@ -17,7 +17,7 @@ public interface  EventService {
     void deleteEvent(UUID id);
     List<Event> getEventByDate(LocalDate date);
     List<Event> listEvents();
-    CompletableFuture<Event> createEvent(CreateEventDTO dto, UUID userId);
+    Event createEvent(CreateEventDTO dto,UUID userId);
     ResponseDTO<EventStatus> cancelEvent(UUID id);
     ResponseDTO<EventStatus> publishEvent(UUID id);
     ResponseDTO<EventStatus> completeEvent(UUID id);

@@ -5,7 +5,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
@@ -15,7 +14,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -33,12 +31,12 @@ public class EventServiceImpl implements EventService {
     private EventRepository eventRepository;
 
 
-    @Async
     @Override
-    public CompletableFuture<Event> createEvent(CreateEventDTO dto, UUID userId) {
+    public Event createEvent(CreateEventDTO dto,UUID userId) {
         if (dto.getTitle() == null || dto.getTitle().isBlank()) {
             throw new IllegalArgumentException("Title cannot be empty");
         }
+
 
         Event event = new EventBuilder()
                 .setTitle(dto.getTitle())
@@ -49,11 +47,9 @@ public class EventServiceImpl implements EventService {
                 .setUserId(userId)
                 .build();
 
-        Event savedEvent = eventRepository.save(event);
-        return CompletableFuture.completedFuture(savedEvent);
+
+        return eventRepository.save(event);
     }
-
-
 
 
     @Override

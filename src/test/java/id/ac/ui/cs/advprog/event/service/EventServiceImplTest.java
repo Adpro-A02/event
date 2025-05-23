@@ -3,7 +3,6 @@ package id.ac.ui.cs.advprog.event.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
@@ -90,6 +89,19 @@ public class EventServiceImplTest {
         validEventDTO.setBasePrice(100.0);
         validEventDTO.setUserId(userId1);
 
+
+        savedEvent = new Event();
+        savedEvent.setId(UUID.randomUUID()); // Repository would generate this
+        savedEvent.setTitle(validEventDTO.getTitle());
+        savedEvent.setDescription(validEventDTO.getDescription());
+        savedEvent.setEventDate(validEventDTO.getEventDate());
+        savedEvent.setLocation(validEventDTO.getLocation());
+        savedEvent.setBasePrice(validEventDTO.getBasePrice());
+        savedEvent.setStatus(EventStatus.DRAFT); // Default status
+        savedEvent.setUserId(validEventDTO.getUserId());
+
+        
+
         SecurityContext context = mock(SecurityContext.class);
         SecurityContextHolder.setContext(context);
 
@@ -97,9 +109,8 @@ public class EventServiceImplTest {
 
     }
 
-
     @Test
-    void testCreateEventAsync() throws Exception {
+    void testCreateEvent() {
         // Arrange
         CreateEventDTO dto = new CreateEventDTO();
         dto.setTitle("My Event");
@@ -121,15 +132,13 @@ public class EventServiceImplTest {
         when(eventRepository.save(any(Event.class))).thenReturn(savedEvent);
 
 
-        CompletableFuture<Event> futureResult = eventService.createEvent(dto, userId1);
-        Event result = futureResult.get(); // Wait for the result
+        Event result = eventService.createEvent(dto,userId1);
 
 
         assertNotNull(result);
         assertEquals(dto.getTitle(), result.getTitle());
         verify(eventRepository, times(1)).save(any(Event.class));
     }
-
     @Test
     void createEvent_fail_emptyTitle() {
         // Arrange
