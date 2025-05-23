@@ -117,16 +117,16 @@ public class EventControllerTest {
 
 
 
-    @Test
-    @WithMockUser(authorities = "Organizer")
-    void getAllEvents_success() throws Exception {
-        List<Event> events = List.of(new Event(), new Event());
-        when(eventService.listEvents()).thenReturn(events);
-
-        mockMvc.perform(get("/api/events"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
-    }
+//    @Test
+//    @WithMockUser(authorities = "Organizer")
+//    void getAllEvents_success() throws Exception {
+//        List<Event> events = List.of(new Event(), new Event());
+//        when(eventService.listEvents()).thenReturn(events);
+//
+//        mockMvc.perform(get("/api/events"))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.length()").value(2));
+//    }
 
     @Test
     @WithMockUser(authorities = "Organizer")

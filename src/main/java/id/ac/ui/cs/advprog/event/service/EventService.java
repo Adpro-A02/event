@@ -15,7 +15,7 @@ public interface  EventService {
     UpdateEventDTO updateEvent(UUID id, UpdateEventDTO updateEventDTO);
     void deleteEvent(UUID id);
     List<Event> getEventByDate(LocalDate date);
-    List<Event> listEvents();
+    List<Event> listEvents(UUID userId, String role);
     Event createEvent(CreateEventDTO dto,UUID userId);
     ResponseDTO<EventStatus> cancelEvent(UUID id);
     ResponseDTO<EventStatus> publishEvent(UUID id);

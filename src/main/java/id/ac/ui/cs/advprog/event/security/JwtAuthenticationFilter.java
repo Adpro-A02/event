@@ -34,9 +34,12 @@
              HttpServletResponse response,
              FilterChain filterChain
      ) throws ServletException, IOException {
-
-         String header = request.getHeader("Authorization");
-         logger.debug("Authorization Header: {}", header);
+    //     logger.debug("=== REQUEST DEBUG ===");
+    // logger.debug("Method: {}", request.getMethod());
+    // logger.debug("URI: {}", request.getRequestURI());
+    // logger.debug("Remote Address: {}", request.getRemoteAddr());
+        String header = request.getHeader("Authorization");
+        logger.debug("Authorization Header: {}", header);
 
          if (header != null && header.startsWith("Bearer ")) {
              String token = header.substring(7);

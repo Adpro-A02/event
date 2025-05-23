@@ -72,10 +72,24 @@ public class EventController {
 
 
     @GetMapping
-    public ResponseEntity<List<Event>> getAllEvents() {
-        List<Event> events = eventService.listEvents();
-        return ResponseEntity.ok(events);
+    public ResponseEntity<?> getAllEvents() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String role = auth.getAuthorities().iterator().next().getAuthority();
+            UUID userId = UUID.fromString(auth.getPrincipal().toString());
+
+            List<Event> events = eventService.listEvents(userId, role);
+            return ResponseEntity.ok(events);
+        } catch (IllegalArgumentException e) {
+
+            throw new IllegalArgumentException("User ID bukan UUID valid");
+        } catch (EventNotFoundException e) {
+
+            throw new EventNotFoundException("Event not found");
+        }
     }
+
+
 
 
     @GetMapping("/{id}")
@@ -172,6 +186,7 @@ public class EventController {
             throw new IllegalArgumentException("Event location cannot be null or empty");
         }
     }
+
 
 
 }

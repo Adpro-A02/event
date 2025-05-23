@@ -111,11 +111,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<Event> listEvents() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String role = auth.getAuthorities().iterator().next().getAuthority();
-        UUID userId = UUID.fromString(auth.getPrincipal().toString());
-
+    public List<Event> listEvents(UUID userId, String role) {
         if ("Organizer".equalsIgnoreCase(role)) {
             return eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
         } else {

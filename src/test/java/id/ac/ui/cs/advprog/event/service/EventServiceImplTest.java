@@ -298,7 +298,21 @@ public class EventServiceImplTest {
 
         assertTrue(result);
     }
+    @Test
+    void listEvents_asOrganizer_shouldReturnOwnOrPublishedEvents() {
+        UUID userId = UUID.randomUUID();
+        String role = "Organizer";
+        List<Event> mockEvents = List.of(new Event(), new Event());
 
+        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED))
+                .thenReturn(mockEvents);
+
+        List<Event> result = eventService.listEvents(userId, role);
+
+        assertEquals(2, result.size());
+        verify(eventRepository).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository, never()).findByStatus(any());
+    }
     @Test
     void testValidateEvent_PublishedAfterThreeMonths() {
         UpdateEventDTO updateDTO = new UpdateEventDTO();
@@ -323,6 +337,21 @@ public class EventServiceImplTest {
         // Assert
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).deleteById(eventId);
+    }
+    @Test
+    void listEvents_asUser_shouldReturnPublishedEventsOnly() {
+        UUID userId = UUID.randomUUID();
+        String role = "User";
+        List<Event> mockEvents = List.of(new Event());
+
+        when(eventRepository.findByStatus(EventStatus.PUBLISHED))
+                .thenReturn(mockEvents);
+
+        List<Event> result = eventService.listEvents(userId, role);
+
+        assertEquals(1, result.size());
+        verify(eventRepository).findByStatus(EventStatus.PUBLISHED);
+        verify(eventRepository, never()).findOwnOrPublishedEvents(any(), any());
     }
 
 
