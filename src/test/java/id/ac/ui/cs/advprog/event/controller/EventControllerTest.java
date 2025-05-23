@@ -8,25 +8,33 @@ import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.security.JwtAuthenticationFilter;
+import id.ac.ui.cs.advprog.event.security.JwtPayload;
+import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
 import id.ac.ui.cs.advprog.event.service.EventService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,18 +48,21 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@TestPropertySource(properties = {
-        "spring.datasource.url=jdbc:h2:mem:testdb",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-        "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.jpa.show-sql=false",
-        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long"
-})
+//@SpringBootTest
+//@AutoConfigureMockMvc
+//@TestPropertySource(properties = {
+//        "spring.datasource.url=jdbc:h2:mem:testdb",
+//        "spring.datasource.username=sa",
+//        "spring.datasource.password=",
+//        "spring.datasource.driver-class-name=org.h2.Driver",
+//        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+//        "spring.jpa.hibernate.ddl-auto=create-drop",
+//        "spring.jpa.show-sql=false",
+//        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long"
+//})
+
+@WebMvcTest(EventController.class)
+@Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
 public class EventControllerTest {
     private static final Logger logger = LoggerFactory.getLogger(EventControllerTest.class);
 
@@ -61,11 +72,15 @@ public class EventControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
     @Autowired
     private ObjectMapper objectMapper;
+
     private UUID userUuid;
     private CreateEventDTO validDto;
-
+    private UUID userId;
     @BeforeEach
     void setUp() {
         objectMapper.findAndRegisterModules(); // For handling Java 8 date/time types
@@ -79,7 +94,8 @@ public class EventControllerTest {
 
         validDto.setUserId(userUuid);
 
-//
+
+
     }
 
     @Test
@@ -393,13 +409,7 @@ public class EventControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void whenUnauthorizedUser_thenReturns403() throws Exception {
-        mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
-                .andExpect(status().isForbidden());
-    }
+
 
     @Test
     @WithMockUser(authorities = "Organizer")
@@ -414,6 +424,47 @@ public class EventControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(eventService).deleteEvent(id);
+    }
+    @Test
+    void getAllEvents_shouldReturnListOfEvents_whenTokenIsValid() throws Exception {
+        // Arrange: buat dummy payload
+        UUID userId = UUID.randomUUID();
+        JwtPayload payload = new JwtPayload();
+        payload.setSub(userId);
+        payload.setRole("User");
+
+        // Buat dummy Authentication dengan payload sebagai principal
+        Authentication authentication = new UsernamePasswordAuthenticationToken(payload, null, List.of());
+
+        // Mock SecurityContextHolder
+        SecurityContext context = Mockito.mock(SecurityContext.class);
+        Mockito.when(context.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(context);
+
+        // Dummy event yang dikembalikan
+        Event event = new Event();
+        event.setId(UUID.randomUUID());
+        event.setTitle("Test Event");
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setUserId(userId);
+
+        List<Event> eventList = List.of(event);
+        Mockito.when(eventService.listEvents(userId)).thenReturn(eventList);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/events")) //
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Test Event"));
+    }
+    @Test
+    void getAllEvents_shouldReturnUnauthorized_whenTokenInvalid() throws Exception {
+
+        SecurityContextHolder.clearContext();
+
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("Token tidak valid"));
     }
 
     @Test

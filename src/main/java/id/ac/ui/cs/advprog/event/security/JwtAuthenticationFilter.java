@@ -34,10 +34,7 @@
              HttpServletResponse response,
              FilterChain filterChain
      ) throws ServletException, IOException {
-    //     logger.debug("=== REQUEST DEBUG ===");
-    // logger.debug("Method: {}", request.getMethod());
-    // logger.debug("URI: {}", request.getRequestURI());
-    // logger.debug("Remote Address: {}", request.getRemoteAddr());
+
         String header = request.getHeader("Authorization");
         logger.debug("Authorization Header: {}", header);
 
@@ -49,16 +46,15 @@
                  if (jwtTokenProvider.validateToken(token)) {
                      String userId = jwtTokenProvider.getUserIdFromJWT(token);
                      String role = jwtTokenProvider.getRoleFromJWT(token);
-
+                     JwtPayload payload = jwtTokenProvider.parseToken(token);
 
 
                      List<SimpleGrantedAuthority> authorities =
                              List.of(new SimpleGrantedAuthority(role));
 
 
-
                      UsernamePasswordAuthenticationToken auth =
-                             new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                             new UsernamePasswordAuthenticationToken(payload, null, authorities);
 
                      SecurityContextHolder.getContext().setAuthentication(auth);
                      logger.debug("Authentication set in context.");

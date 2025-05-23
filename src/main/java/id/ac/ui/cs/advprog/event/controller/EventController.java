@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 
 import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
+import id.ac.ui.cs.advprog.event.security.JwtPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,18 +75,17 @@ public class EventController {
     @GetMapping
     public ResponseEntity<?> getAllEvents() {
         try {
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            String role = auth.getAuthorities().iterator().next().getAuthority();
-            UUID userId = UUID.fromString(auth.getPrincipal().toString());
+            JwtPayload payload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            logger.debug("ini user id{}",payload);
+            UUID userId = payload.getSub();
+            logger.debug("ini user id{}",userId);
 
-            List<Event> events = eventService.listEvents(userId, role);
+
+            List<Event> events = eventService.listEvents(userId);
             return ResponseEntity.ok(events);
-        } catch (IllegalArgumentException e) {
 
-            throw new IllegalArgumentException("User ID bukan UUID valid");
-        } catch (EventNotFoundException e) {
-
-            throw new EventNotFoundException("Event not found");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token tidak valid");
         }
     }
 
