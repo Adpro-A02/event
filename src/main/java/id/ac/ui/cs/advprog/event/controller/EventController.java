@@ -57,7 +57,7 @@ public class EventController {
             }
 
 //            createEventDTO.setUserId(userId);
-            validateCreateEventDTO(createEventDTO);
+
             Event createdEvent = eventService.createEvent(createEventDTO,userId);
 
             return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
@@ -73,7 +73,7 @@ public class EventController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UUID userId = null;
 
-        // Cek apakah user memang sudah login
+
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
             userId = UUID.fromString(authentication.getName());
@@ -85,10 +85,7 @@ public class EventController {
     } catch (Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Gagal mengambil event");
     }
-}
-
-
-
+    }
 
 
     @GetMapping("/{id}")
@@ -112,7 +109,7 @@ public class EventController {
             UpdateEventDTO updatedEvent = eventService.updateEvent(id, dto);
 
             return ResponseEntity.ok(updatedEvent);
-        } catch (EntityNotFoundException e) {
+        } catch (EventNotFoundException e) {
             throw new EventNotFoundException("Event not found");
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Gagal membuat event: " + e.getMessage(), e);
@@ -174,17 +171,7 @@ public class EventController {
         }
     }
 
-    private void validateCreateEventDTO(CreateEventDTO dto) {
-        if (dto.getEventDate() == null) {
-            throw new IllegalArgumentException("Event date cannot be null");
-        }
-        if (dto.getTitle() == null || dto.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Event title cannot be null or empty");
-        }
-        if (dto.getLocation() == null || dto.getLocation().trim().isEmpty()) {
-            throw new IllegalArgumentException("Event location cannot be null or empty");
-        }
-    }
+
 
 
 

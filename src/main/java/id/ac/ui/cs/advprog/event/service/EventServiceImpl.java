@@ -62,10 +62,6 @@ public class EventServiceImpl implements EventService {
 
             throw new IllegalArgumentException("Published event restriction cannot be updated");
         }
-        LocalDateTime eventDate = event.getEventDate();
-        if (LocalDateTime.now().isAfter(eventDate)) {
-            throw new IllegalStateException("Cannot update event after its date");
-        }
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
         event.setEventDate(dto.getEventDate());
@@ -77,26 +73,16 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public boolean validateEvent(UpdateEventDTO event) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime threeMonthsBeforeEvent = event.getEventDate().minusMonths(3);
-        if (event.getStatus() != null && event.getStatus() != EventStatus.PUBLISHED){
-            return true;
-        }
-        else if (event.getStatus() == EventStatus.PUBLISHED && now.isAfter(threeMonthsBeforeEvent)){
-            return true;
-        }
-        return false;
-    }
-
-    @Override
     public void deleteEvent(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException("Event not found"));
         if(event.getStatus() == EventStatus.PUBLISHED){
             throw new IllegalArgumentException("Event refuse to be deleted");
         }
-        eventRepository.deleteById(id);
+        else{
+            eventRepository.delete(event);
+        }
+
     }
 
     @Override
@@ -116,12 +102,11 @@ public class EventServiceImpl implements EventService {
         }
     }
 
+
     @Override
     public ResponseDTO<EventStatus> cancelEvent(UUID id) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException("Event not found"));
-
-
 
         return changeStatus(event, EventStatus.CANCELLED);
     }
@@ -134,11 +119,9 @@ public class EventServiceImpl implements EventService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime eventDate = event.getEventDate();
 
-
         if (eventDate.isBefore(now)) {
             return new ResponseDTO<>(false, "Cannot publish event with a past date", null);
         }
-
 
         if (eventDate.isBefore(now.plusMonths(3))) {
             return new ResponseDTO<>(false, "Event must be scheduled at least 3 months from now to be published", null);
@@ -149,34 +132,23 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public ResponseDTO<EventStatus> completeEvent(UUID id) {
-
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException("Event not found"));
         return changeStatus(event, EventStatus.COMPLETED);
     }
-
-
     @Override
     public Event getEvent(UUID id) {
         return eventRepository.findById(id).orElseThrow(() -> new EventNotFoundException("Event not found"));
     }
-
-
     private ResponseDTO<EventStatus> changeStatus(Event event, EventStatus status) {
 
         event.setStatus(status);
         eventRepository.save(event);
-
-
         return ResponseDTO.<EventStatus>builder()
                 .success(true)
                 .message("Event status changed to " + status)
                 .data(status)
                 .build();
     }
-
-
-
-
 
 }
