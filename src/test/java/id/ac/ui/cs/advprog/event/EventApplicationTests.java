@@ -12,7 +12,8 @@ import org.springframework.test.context.TestPropertySource;
         "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.jpa.show-sql=false",
-        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long"
+        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long",
+        "CORS_ALLOWED_ORIGIN=http://localhost:3000"
 })
 class EventApplicationTests {
 
