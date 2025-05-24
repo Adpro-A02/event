@@ -8,6 +8,7 @@ import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.EventBuilder;
+import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @ExtendWith(MockitoExtension.class)
+@Transactional
 public class EventServiceImplTest {
 
     @Mock
@@ -58,7 +60,8 @@ public class EventServiceImplTest {
     private UUID eventId;
     private LocalDateTime eventDate;
     private UUID userId;
-
+    private Event publicEvent1;
+    private Event publicEvent2;
     private SecurityContext securityContext;
     private UUID userId1;
     private List<Event> publishedEvents;
@@ -100,7 +103,55 @@ public class EventServiceImplTest {
         savedEvent.setStatus(EventStatus.DRAFT); // Default status
         savedEvent.setUserId(validEventDTO.getUserId());
 
-        
+        userId = UUID.randomUUID();
+        publishedEvents = new ArrayList<>();
+        publicEvent1 = new Event();
+        publicEvent1.setId(UUID.randomUUID());
+        publicEvent1.setTitle("Public Event 1");
+        publicEvent1.setDescription("Public Description 1");
+        publicEvent1.setEventDate(eventDate);
+        publicEvent1.setLocation("Public Location 1");
+        publicEvent1.setBasePrice(100.0);
+        publicEvent1.setStatus(EventStatus.PUBLISHED);
+        publicEvent1.setUserId(UUID.randomUUID());
+
+        publicEvent2 = new Event();
+        publicEvent2.setId(UUID.randomUUID());
+        publicEvent2.setTitle("Public Event 2");
+        publicEvent2.setDescription("Public Description 2");
+        publicEvent2.setEventDate(eventDate);
+        publicEvent2.setLocation("Public Location 2");
+        publicEvent2.setBasePrice(150.0);
+        publicEvent2.setStatus(EventStatus.PUBLISHED);
+        publicEvent2.setUserId(UUID.randomUUID());
+
+        publishedEvents.add(publicEvent1);
+        publishedEvents.add(publicEvent2);
+
+        organizerEvents = new ArrayList<>();
+
+        Event organizerEvent1 = new Event();
+        organizerEvent1.setId(UUID.randomUUID());
+        organizerEvent1.setTitle("Organizer Event 1");
+        organizerEvent1.setDescription("Organizer Description 1");
+        organizerEvent1.setEventDate(eventDate);
+        organizerEvent1.setLocation("Organizer Location 1");
+        organizerEvent1.setBasePrice(200.0);
+        organizerEvent1.setStatus(EventStatus.PUBLISHED);
+        organizerEvent1.setUserId(userId);
+
+        Event organizerEvent2 = new Event();
+        organizerEvent2.setId(UUID.randomUUID());
+        organizerEvent2.setTitle("Organizer Event 2");
+        organizerEvent2.setDescription("Organizer Description 2");
+        organizerEvent2.setEventDate(eventDate);
+        organizerEvent2.setLocation("Organizer Location 2");
+        organizerEvent2.setBasePrice(250.0);
+        organizerEvent2.setStatus(EventStatus.PUBLISHED);
+        organizerEvent2.setUserId(userId);
+
+        organizerEvents.add(organizerEvent1);
+        organizerEvents.add(organizerEvent2);
 
         SecurityContext context = mock(SecurityContext.class);
         SecurityContextHolder.setContext(context);
@@ -249,7 +300,21 @@ public class EventServiceImplTest {
 
         assertTrue(result);
     }
+    @Test
+    void listEvents_asOrganizer_shouldReturnOwnOrPublishedEvents() {
+        UUID userId = UUID.randomUUID();
+        String role = "Organizer";
+        List<Event> mockEvents = List.of(new Event(), new Event());
 
+        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED))
+                .thenReturn(mockEvents);
+
+        List<Event> result = eventService.listEvents(userId);
+
+        assertEquals(2, result.size());
+        verify(eventRepository).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository, never()).findByStatus(any());
+    }
     @Test
     void testValidateEvent_PublishedAfterThreeMonths() {
         UpdateEventDTO updateDTO = new UpdateEventDTO();
@@ -274,6 +339,27 @@ public class EventServiceImplTest {
         // Assert
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).deleteById(eventId);
+    }
+    @Test
+    void listEvents_asUser_shouldReturnPublishedEventsOnly() {
+        UUID userId = UUID.randomUUID();
+        List<Event> mockEvents = List.of(publicEvent1, publicEvent2, testEvent);
+
+        // Mock the actual method being called
+        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED))
+                .thenReturn(mockEvents);
+
+
+        List<Event> result = eventService.listEvents(userId);
+
+
+        assertEquals(3, result.size());
+        assertTrue(result.contains(publicEvent1));
+        assertTrue(result.contains(publicEvent2));
+        assertTrue(result.contains(testEvent));
+
+        verify(eventRepository).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository, never()).findByStatus(any());
     }
 
 
@@ -349,6 +435,7 @@ public class EventServiceImplTest {
     }
 
     @Test
+
     void testGetEvent_NotFound() {
         Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.empty());
 

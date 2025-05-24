@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -37,8 +38,6 @@ public class JwtTokenProvider {
 
    }
 
-
-
     public String getUserIdFromJWT(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -57,7 +56,7 @@ public class JwtTokenProvider {
         // Handle case where role might be in different case
         String role = claims.get("role", String.class);
         if (role == null) {
-            role = claims.get("ROLE", String.class); // try uppercase
+            role = claims.get("ROLE", String.class);
         }
         return role;
     }
