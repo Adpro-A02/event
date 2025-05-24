@@ -62,14 +62,9 @@ public class EventServiceImpl implements EventService {
 
             throw new IllegalArgumentException("Published event restriction cannot be updated");
         }
-        if (dto.getTitle() == null || dto.getTitle().isBlank()) {
-            throw new IllegalArgumentException("Title cannot be empty.");
-        }
-        if (dto.getLocation() == null || dto.getLocation().isBlank()) {
-            throw new IllegalArgumentException("Location cannot be empty.");
-        }
-        if (dto.getEventDate() == null) {
-            throw new IllegalArgumentException("Event date is required.");
+        LocalDateTime eventDate = event.getEventDate();
+        if (LocalDateTime.now().isAfter(eventDate)) {
+            throw new IllegalStateException("Cannot update event after its date");
         }
         event.setTitle(dto.getTitle());
         event.setDescription(dto.getDescription());
@@ -111,16 +106,8 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public List<Event> listEvents() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String role = auth.getAuthorities().iterator().next().getAuthority();
-        UUID userId = UUID.fromString(auth.getPrincipal().toString());
-
-        if ("Organizer".equalsIgnoreCase(role)) {
-            return eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
-        } else {
-            return eventRepository.findByStatus(EventStatus.PUBLISHED);
-        }
+    public List<Event> listEvents(UUID userId) {
+        return eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
     }
 
     @Override

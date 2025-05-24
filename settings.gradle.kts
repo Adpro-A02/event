@@ -1,1 +1,1 @@
-rootProject.name = "event"
+rootProject.name = "event-sphere-event"

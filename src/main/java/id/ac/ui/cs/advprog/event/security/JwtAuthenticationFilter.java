@@ -35,8 +35,8 @@
              FilterChain filterChain
      ) throws ServletException, IOException {
 
-         String header = request.getHeader("Authorization");
-         logger.debug("Authorization Header: {}", header);
+        String header = request.getHeader("Authorization");
+        logger.debug("Authorization Header: {}", header);
 
          if (header != null && header.startsWith("Bearer ")) {
              String token = header.substring(7);
@@ -47,11 +47,11 @@
                      String userId = jwtTokenProvider.getUserIdFromJWT(token);
                      String role = jwtTokenProvider.getRoleFromJWT(token);
 
+                     
 
 
                      List<SimpleGrantedAuthority> authorities =
                              List.of(new SimpleGrantedAuthority(role));
-
 
 
                      UsernamePasswordAuthenticationToken auth =

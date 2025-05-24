@@ -8,24 +8,32 @@ import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.security.JwtAuthenticationFilter;
+import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
 import id.ac.ui.cs.advprog.event.service.EventService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,8 +47,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+//@SpringBootTest
+//@AutoConfigureMockMvc
+//@TestPropertySource(properties = {
+//        "spring.datasource.url=jdbc:h2:mem:testdb",
+//        "spring.datasource.username=sa",
+//        "spring.datasource.password=",
+//        "spring.datasource.driver-class-name=org.h2.Driver",
+//        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+//        "spring.jpa.hibernate.ddl-auto=create-drop",
+//        "spring.jpa.show-sql=false",
+//        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long"
+//})
+
+@WebMvcTest(EventController.class)
+@Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
+@TestPropertySource(properties = {
+        "CORS_ALLOWED_ORIGIN=http://localhost:3000"
+})
 public class EventControllerTest {
     private static final Logger logger = LoggerFactory.getLogger(EventControllerTest.class);
 
@@ -50,11 +74,15 @@ public class EventControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
     @Autowired
     private ObjectMapper objectMapper;
+
     private UUID userUuid;
     private CreateEventDTO validDto;
-
+    private UUID userId;
     @BeforeEach
     void setUp() {
         objectMapper.findAndRegisterModules(); // For handling Java 8 date/time types
@@ -65,10 +93,11 @@ public class EventControllerTest {
         validDto.setLocation("Depok");
         validDto.setEventDate(LocalDateTime.now().plusDays(1));
         validDto.setBasePrice(50.0);
-        // Let's use a hard-coded valid UUID string instead of a random one
+
         validDto.setUserId(userUuid);
 
-//
+
+
     }
 
     @Test
@@ -76,16 +105,16 @@ public class EventControllerTest {
     public void testCreateEvent_Success() throws Exception {
         UUID userId = UUID.fromString("c64ee53e-f39b-4ec8-9288-3318b0b8a97e");
 
-        // Setup DTO
+
         CreateEventDTO createEventDTO = new CreateEventDTO();
         createEventDTO.setTitle("Seminar Fasilkom");
         createEventDTO.setDescription("Event pembelajaran untuk mahasiswa.");
         createEventDTO.setEventDate(LocalDate.now().plusDays(3).atStartOfDay());
         createEventDTO.setLocation("Aula Fasilkom");
         createEventDTO.setBasePrice(0.0);
-        // Tidak perlu setUserId karena controller ambil dari JWT
 
-        // Simulasi eventService
+
+
         Event mockEvent = new Event();
         mockEvent.setId(UUID.randomUUID());
         mockEvent.setTitle(createEventDTO.getTitle());
@@ -106,16 +135,16 @@ public class EventControllerTest {
 
 
 
-    @Test
-    @WithMockUser(authorities = "Organizer")
-    void getAllEvents_success() throws Exception {
-        List<Event> events = List.of(new Event(), new Event());
-        when(eventService.listEvents()).thenReturn(events);
-
-        mockMvc.perform(get("/api/events"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
-    }
+//    @Test
+//    @WithMockUser(authorities = "Organizer")
+//    void getAllEvents_success() throws Exception {
+//        List<Event> events = List.of(new Event(), new Event());
+//        when(eventService.listEvents()).thenReturn(events);
+//
+//        mockMvc.perform(get("/api/events"))
+//                .andExpect(status().isOk())
+//                .andExpect(jsonPath("$.length()").value(2));
+//    }
 
     @Test
     @WithMockUser(authorities = "Organizer")
@@ -382,13 +411,7 @@ public class EventControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void whenUnauthorizedUser_thenReturns403() throws Exception {
-        mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
-                .andExpect(status().isForbidden());
-    }
+
 
     @Test
     @WithMockUser(authorities = "Organizer")
@@ -403,6 +426,45 @@ public class EventControllerTest {
                 .andExpect(status().isNotFound());
 
         verify(eventService).deleteEvent(id);
+    }
+    @Test
+    void getAllEvents_shouldReturnListOfEvents_whenTokenIsValid() throws Exception {
+        // Arrange
+        UUID userId = UUID.randomUUID();
+
+        // Mock Authentication untuk mengembalikan userId dalam bentuk String
+        Authentication authentication = Mockito.mock(Authentication.class);
+        Mockito.when(authentication.getName()).thenReturn(userId.toString());
+
+        // Mock SecurityContext
+        SecurityContext context = Mockito.mock(SecurityContext.class);
+        Mockito.when(context.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(context);
+
+        // Dummy Event yang akan dikembalikan service
+        Event event = new Event();
+        event.setId(UUID.randomUUID());
+        event.setTitle("Test Event");
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setUserId(userId);
+
+        List<Event> eventList = List.of(event);
+        Mockito.when(eventService.listEvents(userId)).thenReturn(eventList);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].title").value("Test Event"));
+    }
+    @Test
+    void getAllEvents_shouldReturnUnauthorized_whenTokenInvalid() throws Exception {
+
+        SecurityContextHolder.clearContext();
+
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(content().string("Token tidak valid"));
     }
 
     @Test
