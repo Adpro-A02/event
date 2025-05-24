@@ -46,7 +46,8 @@
                  if (jwtTokenProvider.validateToken(token)) {
                      String userId = jwtTokenProvider.getUserIdFromJWT(token);
                      String role = jwtTokenProvider.getRoleFromJWT(token);
-                     JwtPayload payload = jwtTokenProvider.parseToken(token);
+
+                     
 
 
                      List<SimpleGrantedAuthority> authorities =
@@ -54,7 +55,7 @@
 
 
                      UsernamePasswordAuthenticationToken auth =
-                             new UsernamePasswordAuthenticationToken(payload, null, authorities);
+                             new UsernamePasswordAuthenticationToken(userId, null, authorities);
 
                      SecurityContextHolder.getContext().setAuthentication(auth);
                      logger.debug("Authentication set in context.");

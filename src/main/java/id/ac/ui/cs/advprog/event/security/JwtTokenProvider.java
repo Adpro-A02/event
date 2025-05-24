@@ -46,19 +46,7 @@ public class JwtTokenProvider {
                 .getBody();
         return claims.getSubject();
     }
-    public JwtPayload parseToken(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(jwtSecret.getBytes())
-                .parseClaimsJws(token)
-                .getBody();
 
-        JwtPayload payload = new JwtPayload();
-        payload.setSub(UUID.fromString(claims.getSubject()));
-        payload.setRole((String) claims.get("role"));
-        payload.setExp(claims.getExpiration().getTime() / 1000);
-
-        return payload;
-    }
     public String getRoleFromJWT(String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(getSigningKey())

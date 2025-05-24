@@ -4,12 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
-import id.ac.ui.cs.advprog.event.security.JwtPayload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,13 +22,12 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import id.ac.ui.cs.advprog.event.exception.ResourceNotFoundException;
+import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
@@ -49,13 +45,12 @@ public class EventController {
     public ResponseEntity<Event> createEvent(@RequestBody CreateEventDTO createEventDTO) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            logger.debug("ini user id{}",authentication);
+           
 
-
-            String userIdStr = authentication.getName();
-//            logger.debug("ini user id{}",principal);
-            UUID userId;
+            UUID userId = null;
             try {
-                userId = UUID.fromString(userIdStr);
+                userId = UUID.fromString(authentication.getName());
                 logger.debug("ini user id{}",userId.toString());
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("User ID bukan UUID valid");
@@ -75,13 +70,12 @@ public class EventController {
     @GetMapping
     public ResponseEntity<?> getAllEvents() {
         try {
-            JwtPayload payload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            logger.debug("ini user id{}",payload);
-            UUID userId = payload.getSub();
-            logger.debug("ini user id{}",userId);
+//
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String userIdStr = authentication.getName();
 
 
-            List<Event> events = eventService.listEvents(userId);
+            List<Event> events = eventService.listEvents(UUID.fromString(userIdStr));
             return ResponseEntity.ok(events);
 
         } catch (Exception e) {

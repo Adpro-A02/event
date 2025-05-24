@@ -8,7 +8,6 @@ import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.security.JwtAuthenticationFilter;
-import id.ac.ui.cs.advprog.event.security.JwtPayload;
 import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
 import id.ac.ui.cs.advprog.event.service.EventService;
 
@@ -427,21 +426,19 @@ public class EventControllerTest {
     }
     @Test
     void getAllEvents_shouldReturnListOfEvents_whenTokenIsValid() throws Exception {
-        // Arrange: buat dummy payload
+        // Arrange
         UUID userId = UUID.randomUUID();
-        JwtPayload payload = new JwtPayload();
-        payload.setSub(userId);
-        payload.setRole("User");
 
-        // Buat dummy Authentication dengan payload sebagai principal
-        Authentication authentication = new UsernamePasswordAuthenticationToken(payload, null, List.of());
+        // Mock Authentication untuk mengembalikan userId dalam bentuk String
+        Authentication authentication = Mockito.mock(Authentication.class);
+        Mockito.when(authentication.getName()).thenReturn(userId.toString());
 
-        // Mock SecurityContextHolder
+        // Mock SecurityContext
         SecurityContext context = Mockito.mock(SecurityContext.class);
         Mockito.when(context.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(context);
 
-        // Dummy event yang dikembalikan
+        // Dummy Event yang akan dikembalikan service
         Event event = new Event();
         event.setId(UUID.randomUUID());
         event.setTitle("Test Event");
@@ -452,7 +449,7 @@ public class EventControllerTest {
         Mockito.when(eventService.listEvents(userId)).thenReturn(eventList);
 
         // Act & Assert
-        mockMvc.perform(get("/api/events")) //
+        mockMvc.perform(get("/api/events"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].title").value("Test Event"));
     }
