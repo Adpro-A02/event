@@ -3,12 +3,11 @@ package id.ac.ui.cs.advprog.event.controller;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
-import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -24,18 +23,16 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
-import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
-import id.ac.ui.cs.advprog.event.exception.ResourceNotFoundException;
+import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "${CORS_ALLOWED_ORIGIN:http://localhost:3000}")
 @RestController
 @RequestMapping("/api/events")
 public class EventController {
@@ -48,33 +45,46 @@ public class EventController {
     public ResponseEntity<Event> createEvent(@RequestBody CreateEventDTO createEventDTO) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            logger.debug("ini user id{}",authentication);
+           
 
-
-            String userIdStr = authentication.getName();
-//            logger.debug("ini user id{}",principal);
-            UUID userId;
+            UUID userId = null;
             try {
-                userId = UUID.fromString(userIdStr);
+                userId = UUID.fromString(authentication.getName());
                 logger.debug("ini user id{}",userId.toString());
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("User ID bukan UUID valid");
             }
 
-//            createEventDTO.setUserId(userId);
-            validateCreateEventDTO(createEventDTO);
+
+
             Event createdEvent = eventService.createEvent(createEventDTO,userId);
 
             return new ResponseEntity<>(createdEvent, HttpStatus.CREATED);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Gagal membuat event: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Failed create event: " + e.getMessage(), e);
         }
     }
 
 
-    @GetMapping
-    public ResponseEntity<List<Event>> getAllEvents() {
-        List<Event> events = eventService.listEvents();
+   @GetMapping
+    public ResponseEntity<?> getAllEvents() {
+    try {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UUID userId = null;
+
+
+        if (authentication != null && authentication.isAuthenticated()
+                && !"anonymousUser".equals(authentication.getPrincipal())) {
+            userId = UUID.fromString(authentication.getName());
+        }
+
+        List<Event> events = eventService.listEvents(userId);
         return ResponseEntity.ok(events);
+
+    } catch (Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed get event");
+    }
     }
 
 
@@ -99,10 +109,10 @@ public class EventController {
             UpdateEventDTO updatedEvent = eventService.updateEvent(id, dto);
 
             return ResponseEntity.ok(updatedEvent);
-        } catch (EntityNotFoundException e) {
+        } catch (EventNotFoundException e) {
             throw new EventNotFoundException("Event not found");
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Gagal membuat event: " + e.getMessage(), e);
+            throw new IllegalArgumentException("Failed create event: " + e.getMessage(), e);
         }
     }
     @DeleteMapping("/{id}")
@@ -110,7 +120,7 @@ public class EventController {
         try {
             eventService.deleteEvent(id);
             return ResponseEntity.noContent().build();
-        } catch (EntityNotFoundException e) {
+        } catch (EventNotFoundException e) {
             throw new EventNotFoundException("Event not found");
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Event refuse to delete");
@@ -125,19 +135,22 @@ public class EventController {
 
     @PreAuthorize("hasAuthority('Organizer')")
     @PatchMapping("/{id}/publish")
-    public ResponseEntity<EventStatus> publishEvent(@PathVariable("id") UUID id) {
-        try {
-            ResponseDTO<EventStatus> response = eventService.publishEvent(id);
-            if (!response.isSuccess()) {
-
-                throw new IllegalArgumentException("Event not published");
-            }
-            return ResponseEntity.ok(response.getData());
-
-        } catch (EventNotFoundException e) {
-
-            throw new EventNotFoundException("Event not found");
-        }
+    public CompletableFuture<ResponseEntity<?>> publishEvent(@PathVariable("id") UUID id) {
+        return eventService.publishEvent(id)
+                .thenApply(response -> {
+                    if (!response.isSuccess()) {
+                        return ResponseEntity
+                                .status(HttpStatus.BAD_REQUEST)
+                                .body(null);
+                    }
+                    return ResponseEntity.ok(response.getData());
+                })
+                .exceptionally(throwable -> {
+                    if (throwable.getCause() instanceof EventNotFoundException) {
+                        throw new EventNotFoundException("Event not found");
+                    }
+                    throw new RuntimeException("An unexpected error occurred");
+                });
     }
 
     @PreAuthorize("hasAuthority('Organizer')")
@@ -161,17 +174,8 @@ public class EventController {
         }
     }
 
-    private void validateCreateEventDTO(CreateEventDTO dto) {
-        if (dto.getEventDate() == null) {
-            throw new IllegalArgumentException("Event date cannot be null");
-        }
-        if (dto.getTitle() == null || dto.getTitle().trim().isEmpty()) {
-            throw new IllegalArgumentException("Event title cannot be null or empty");
-        }
-        if (dto.getLocation() == null || dto.getLocation().trim().isEmpty()) {
-            throw new IllegalArgumentException("Event location cannot be null or empty");
-        }
-    }
+
+
 
 
 }

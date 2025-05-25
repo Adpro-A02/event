@@ -23,20 +23,58 @@ public class EventRepositoryTest {
     private EventRepository eventRepository;
 
     private UUID testUserId;
-
+    private UUID userId1;
+    private UUID userId2;
+    private LocalDateTime eventDate;
     @BeforeEach
     void setUp() {
-        // Clear the repository before each test to avoid test interference
-        eventRepository.deleteAll();
 
-        // Create a test user ID to use in all tests
+        eventRepository.deleteAll();
+        userId1 = UUID.randomUUID();
+        userId2 = UUID.randomUUID();
+        eventDate = LocalDateTime.now().plusDays(7);
         testUserId = UUID.randomUUID();
+
+        Event event1 = new Event();
+
+        event1.setTitle("Event 1");
+        event1.setDescription("Description 1");
+        event1.setEventDate(eventDate);
+        event1.setLocation("Location 1");
+        event1.setBasePrice(50.0);
+        event1.setStatus(EventStatus.PUBLISHED);
+        event1.setUserId(userId1);
+
+        Event event2 = new Event();
+
+        event2.setTitle("Event 2");
+        event2.setDescription("Description 2");
+        event2.setEventDate(eventDate.minusDays(1));
+        event2.setLocation("Location 2");
+        event2.setBasePrice(70.0);
+        event2.setStatus(EventStatus.COMPLETED);
+        event2.setUserId(userId1);
+
+        Event event3 = new Event();
+
+        event3.setTitle("Event 3");
+        event3.setDescription("Description 3");
+        event3.setEventDate(eventDate.plusDays(3));
+        event3.setLocation("Location 3");
+        event3.setBasePrice(80.0);
+        event3.setStatus(EventStatus.DRAFT);
+        event3.setUserId(userId2);
+
+        eventRepository.save(event1);
+        eventRepository.save(event2);
+        eventRepository.save(event3);
+
     }
 
     @Test
     @DisplayName("Should find events by exact event date")
     void testFindByEventDate() {
-        // Given
+
         LocalDateTime date = LocalDateTime.of(2025, 5, 10, 10, 0);
 
         Event event = new EventBuilder()
@@ -45,15 +83,13 @@ public class EventRepositoryTest {
                 .setEventDate(date)
                 .setLocation("Jakarta")
                 .setBasePrice(0.0)
-                .setUserId(testUserId) // Set the user ID
+                .setUserId(testUserId)
                 .build();
 
         eventRepository.save(event);
 
-        // When
         List<Event> result = eventRepository.findByEventDate(date);
 
-        // Then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Event 1");
         assertThat(result.get(0).getEventDate()).isEqualTo(date);
@@ -62,22 +98,20 @@ public class EventRepositoryTest {
     @Test
     @DisplayName("Should find events by location")
     void testFindByLocation() {
-        // Given
+
         Event event = new EventBuilder()
                 .setTitle("Pemrograman Lanjut")
                 .setDescription("Design Pattern")
                 .setEventDate(LocalDateTime.now().plusMonths(4))
                 .setLocation("Depok")
                 .setBasePrice(100.0)
-                .setUserId(testUserId) // Set the user ID
+                .setUserId(testUserId)
                 .build();
 
         eventRepository.save(event);
 
-        // When
         List<Event> result = eventRepository.findByLocation("Depok");
 
-        // Then
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getLocation()).isEqualTo("Depok");
         assertThat(result.get(0).getTitle()).isEqualTo("Pemrograman Lanjut");
@@ -86,7 +120,7 @@ public class EventRepositoryTest {
     @Test
     @DisplayName("Should find events with dates after a specific date")
     void testFindByEventDateAfter() {
-        // Given
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime futureDate = now.plusMonths(4);
 
@@ -96,44 +130,51 @@ public class EventRepositoryTest {
                 .setEventDate(futureDate)
                 .setLocation("Depok")
                 .setBasePrice(100.0)
-                .setUserId(testUserId) // Set the user ID
+                .setUserId(testUserId)
                 .build();
 
         eventRepository.save(event);
 
-        // Also add a past event to verify it's not returned
         Event pastEvent = new EventBuilder()
                 .setTitle("Past Event")
                 .setDescription("This happened already")
                 .setEventDate(now.minusMonths(1))
                 .setLocation("Jakarta")
                 .setBasePrice(50.0)
-                .setUserId(testUserId) // Set the user ID
+                .setUserId(testUserId)
                 .build();
 
         eventRepository.save(pastEvent);
 
-        // When
         List<Event> result = eventRepository.findByEventDateAfter(now);
 
-        // Then
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTitle()).isEqualTo("Pemrograman Lanjut");
+        assertThat(result).hasSize(4);
+        assertThat(result.get(0).getTitle()).isEqualTo("Event 1");
         assertThat(result.get(0).getEventDate()).isAfter(now);
     }
 
     @Test
     @DisplayName("Should return empty list when no events match the criteria")
     void testNoMatchingEvents() {
-        // Given
+
         LocalDateTime futureDate = LocalDateTime.now().plusYears(10);
 
-        // When
         List<Event> dateResults = eventRepository.findByEventDate(futureDate);
         List<Event> locationResults = eventRepository.findByLocation("NonExistentLocation");
 
-        // Then
         assertThat(dateResults).isEmpty();
         assertThat(locationResults).isEmpty();
     }
+
+    @Test
+    void testFindByStatusIn_returnsCorrectEvents() {
+        List<EventStatus> statuses = List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED);
+
+        List<Event> results = eventRepository.findByStatusIn(statuses);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(Event::getStatus).containsOnly(EventStatus.PUBLISHED, EventStatus.COMPLETED);
+    }
+
+
 }

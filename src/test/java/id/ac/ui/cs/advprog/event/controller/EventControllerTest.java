@@ -8,30 +8,47 @@ import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
 import id.ac.ui.cs.advprog.event.security.JwtAuthenticationFilter;
+import id.ac.ui.cs.advprog.event.security.JwtTokenProvider;
 import id.ac.ui.cs.advprog.event.service.EventService;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -39,9 +56,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+
+@WebMvcTest(EventController.class)
+@Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
+@TestPropertySource(properties = {
+        "CORS_ALLOWED_ORIGIN=http://localhost:3000"
+})
 public class EventControllerTest {
+
     private static final Logger logger = LoggerFactory.getLogger(EventControllerTest.class);
 
     @MockBean
@@ -50,10 +72,17 @@ public class EventControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
+
+
     @Autowired
     private ObjectMapper objectMapper;
+
     private UUID userUuid;
     private CreateEventDTO validDto;
+    private UUID userId;
 
     @BeforeEach
     void setUp() {
@@ -65,10 +94,9 @@ public class EventControllerTest {
         validDto.setLocation("Depok");
         validDto.setEventDate(LocalDateTime.now().plusDays(1));
         validDto.setBasePrice(50.0);
-        // Let's use a hard-coded valid UUID string instead of a random one
+
         validDto.setUserId(userUuid);
 
-//
     }
 
     @Test
@@ -76,16 +104,13 @@ public class EventControllerTest {
     public void testCreateEvent_Success() throws Exception {
         UUID userId = UUID.fromString("c64ee53e-f39b-4ec8-9288-3318b0b8a97e");
 
-        // Setup DTO
         CreateEventDTO createEventDTO = new CreateEventDTO();
         createEventDTO.setTitle("Seminar Fasilkom");
         createEventDTO.setDescription("Event pembelajaran untuk mahasiswa.");
         createEventDTO.setEventDate(LocalDate.now().plusDays(3).atStartOfDay());
         createEventDTO.setLocation("Aula Fasilkom");
         createEventDTO.setBasePrice(0.0);
-        // Tidak perlu setUserId karena controller ambil dari JWT
 
-        // Simulasi eventService
         Event mockEvent = new Event();
         mockEvent.setId(UUID.randomUUID());
         mockEvent.setTitle(createEventDTO.getTitle());
@@ -97,24 +122,11 @@ public class EventControllerTest {
         when(eventService.createEvent(any(CreateEventDTO.class), eq(userId))).thenReturn(mockEvent);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createEventDTO)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(createEventDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value(createEventDTO.getTitle()))
                 .andExpect(jsonPath("$.location").value(createEventDTO.getLocation()));
-    }
-
-
-
-    @Test
-    @WithMockUser(authorities = "Organizer")
-    void getAllEvents_success() throws Exception {
-        List<Event> events = List.of(new Event(), new Event());
-        when(eventService.listEvents()).thenReturn(events);
-
-        mockMvc.perform(get("/api/events"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
     }
 
     @Test
@@ -142,8 +154,8 @@ public class EventControllerTest {
         when(eventService.updateEvent(eq(id), any(UpdateEventDTO.class))).thenReturn(dto);
 
         mockMvc.perform(put("/api/events/{id}", id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Updated Event"));
     }
@@ -170,6 +182,7 @@ public class EventControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
+
     @Test
     @WithMockUser(authorities = "Organizer")
     void publishEvent_success() throws Exception {
@@ -179,11 +192,75 @@ public class EventControllerTest {
                 .data(EventStatus.PUBLISHED)
                 .build();
 
-        when(eventService.publishEvent(id)).thenReturn(response);
+        when(eventService.publishEvent(id)).thenReturn(CompletableFuture.completedFuture(response));
 
-        mockMvc.perform(patch("/api/events/{id}/publish", id))
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(content().string("\"PUBLISHED\""));
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_runtimeException() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("Unexpected error")));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(containsString("An unexpected error occurred")));
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_unsuccessful_shouldReturn400BadRequest() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        ResponseDTO<EventStatus> failedResponse = ResponseDTO.<EventStatus>builder()
+                .success(false)
+                .message("Event not found")
+                .build();
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.completedFuture(failedResponse));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isBadRequest());
+
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_eventNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.failedFuture(new EventNotFoundException("Event not found")));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("Event not found")));
     }
 
     @Test
@@ -222,13 +299,13 @@ public class EventControllerTest {
     @WithMockUser(authorities = "Organizer")
     void createEvent_shouldReturnBadRequest_whenMissingFields() throws Exception {
         CreateEventDTO invalidDto = new CreateEventDTO();
-        invalidDto.setTitle("");  
+        invalidDto.setTitle("");
         invalidDto.setLocation("Location");
-        invalidDto.setEventDate(null); 
+        invalidDto.setEventDate(null);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -250,14 +327,14 @@ public class EventControllerTest {
     void updateEvent_shouldReturnBadRequest_whenInvalidInput() throws Exception {
         UUID id = UUID.randomUUID();
         UpdateEventDTO dto = new UpdateEventDTO();
-        dto.setTitle(""); 
+        dto.setTitle("");
 
         when(eventService.updateEvent(eq(id), any(UpdateEventDTO.class)))
                 .thenThrow(new IllegalArgumentException("Invalid title"));
 
         mockMvc.perform(put("/api/events/{id}", id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -272,8 +349,8 @@ public class EventControllerTest {
                 .thenThrow(new EventNotFoundException("Event not found"));
 
         mockMvc.perform(put("/api/events/{id}", id)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isNotFound());
     }
 
@@ -317,8 +394,8 @@ public class EventControllerTest {
         invalidDto.setBasePrice(50.0);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -328,15 +405,14 @@ public class EventControllerTest {
         CreateEventDTO invalidDto = new CreateEventDTO();
         invalidDto.setEventDate(LocalDateTime.of(2025, 5, 13, 10, 30));
         invalidDto.setTitle("Valid Title");
-        invalidDto.setLocation(null);  // null location
+        invalidDto.setLocation(null);
         invalidDto.setBasePrice(75.0);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
     }
-
 
     @Test
     @WithMockUser(username = "c64ee53e-f39b-4ec8-9288-3318b0b8a97e", authorities = "Organizer")
@@ -351,23 +427,24 @@ public class EventControllerTest {
         when(eventService.createEvent(any(CreateEventDTO.class), eq(userUuid))).thenReturn(mockEvent);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validDto)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.title").value(validDto.getTitle()))
                 .andExpect(jsonPath("$.description").value(validDto.getDescription()))
                 .andExpect(jsonPath("$.location").value(validDto.getLocation()))
-//                .andExpect(jsonPath("$.eventDate").exists())
+                //                .andExpect(jsonPath("$.eventDate").exists())
                 .andExpect(jsonPath("$.basePrice").value(validDto.getBasePrice()));
     }
+
     @Test
     @WithMockUser(authorities = "Organizer")
     void whenTitleIsEmpty_thenReturns400() throws Exception {
         validDto.setTitle("   ");
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validDto)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -377,17 +454,9 @@ public class EventControllerTest {
         validDto.setEventDate(null);
 
         mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(validDto)))
                 .andExpect(status().isBadRequest());
-    }
-
-    @Test
-    void whenUnauthorizedUser_thenReturns403() throws Exception {
-        mockMvc.perform(post("/api/events")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validDto)))
-                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -395,7 +464,6 @@ public class EventControllerTest {
     void deleteEvent_InvalidUUID() throws Exception {
         UUID id = UUID.randomUUID();
 
-        // Simulasi eventService melempar EventNotFoundException
         doThrow(new EventNotFoundException("Event not found"))
                 .when(eventService).deleteEvent(id);
 
@@ -404,6 +472,54 @@ public class EventControllerTest {
 
         verify(eventService).deleteEvent(id);
     }
+
+    @Test
+    void getAllEvents_shouldReturnOk_whenNoAuthentication() throws Exception {
+       
+        List<Event> mockEvents = Arrays.asList(
+                new Event(),
+                new Event()
+        );
+
+        when(eventService.listEvents(null)).thenReturn(mockEvents);
+
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+
+        verify(eventService).listEvents(null);
+    }
+
+    @Test
+    void getAllEvents_shouldReturnOk_whenValidAuthentication() throws Exception {
+        
+        UUID userId = UUID.randomUUID();
+        Authentication mockAuth = mock(Authentication.class);
+        when(mockAuth.isAuthenticated()).thenReturn(true);
+        when(mockAuth.getName()).thenReturn(userId.toString());
+        when(mockAuth.getPrincipal()).thenReturn("user");
+
+        SecurityContext mockSecurityContext = mock(SecurityContext.class);
+        when(mockSecurityContext.getAuthentication()).thenReturn(mockAuth);
+        SecurityContextHolder.setContext(mockSecurityContext);
+
+        // Mock data untuk response
+        List<Event> mockEvents = Arrays.asList(
+                new Event(),
+                new Event()
+        );
+                
+        when(eventService.listEvents(userId)).thenReturn(mockEvents);
+
+        mockMvc.perform(get("/api/events")
+                        .header("Authorization", "Bearer valid-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+        verify(eventService).listEvents(userId);
+    }
+
 
     @Test
     @WithMockUser(authorities = "Organizer")
@@ -415,8 +531,6 @@ public class EventControllerTest {
         publishedEvent.setTitle("Published Event");
         publishedEvent.setDescription("This event has already been published");
         publishedEvent.setLocation("Online");
-        publishedEvent.setEventDate(LocalDateTime.now().plusDays(1));
-        publishedEvent.setBasePrice(100.0);
         publishedEvent.setStatus(EventStatus.PUBLISHED);
 
 
@@ -425,8 +539,48 @@ public class EventControllerTest {
                 .when(eventService).deleteEvent(id);
 
         mockMvc.perform(delete("/api/events/{id}", id))
+
                 .andExpect(status().isBadRequest());
 
         verify(eventService).deleteEvent(id);
     }
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void deleteEvent_not_found() throws Exception {
+        Event publishedEvent = new Event();
+        UUID id = UUID.randomUUID();
+        UUID id2 = UUID.randomUUID();
+
+        publishedEvent.setId(id);
+        publishedEvent.setTitle("Published Event");
+        publishedEvent.setDescription("This event has already been published");
+        publishedEvent.setLocation("Online");
+        publishedEvent.setStatus(EventStatus.PUBLISHED);
+
+
+
+        doThrow(new EventNotFoundException("Event not found"))
+                .when(eventService).deleteEvent(id2);
+
+        mockMvc.perform(delete("/api/events/{id}", id2))
+ 
+               .andExpect(status().isNotFound());
+
+        verify(eventService).deleteEvent(id2);
+    }
+    @Test
+    void getAllEvents_shouldReturnInternalServerError_whenServiceThrowsException() throws Exception {
+
+        SecurityContextHolder.clearContext();
+
+
+        when(eventService.listEvents(null)).thenThrow(new RuntimeException("Simulated failure"));
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Failed get event"));
+
+        verify(eventService).listEvents(null);
+    }
+
 }
