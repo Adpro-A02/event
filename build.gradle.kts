@@ -60,6 +60,10 @@ dependencies {
 
     testImplementation ("org.springframework.boot:spring-boot-starter-test")
     implementation("io.github.cdimascio:dotenv-java:3.2.0")
+    // Monitoring and Metrics
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    
 }
 
 tasks.register<Test>("unitTest") {

@@ -34,8 +34,6 @@ public class CreateEventDTO {
     @JsonProperty("basePrice")
     private double basePrice;
 
-
-
     @JsonProperty("user_id")
     private UUID userId;
 
