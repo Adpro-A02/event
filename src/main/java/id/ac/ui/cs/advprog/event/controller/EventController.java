@@ -120,7 +120,7 @@ public class EventController {
         try {
             eventService.deleteEvent(id);
             return ResponseEntity.noContent().build();
-        } catch (EntityNotFoundException e) {
+        } catch (EventNotFoundException e) {
             throw new EventNotFoundException("Event not found");
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Event refuse to delete");

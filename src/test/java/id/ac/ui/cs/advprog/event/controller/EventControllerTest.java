@@ -26,6 +26,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -46,6 +47,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -58,7 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(EventController.class)
 @Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
 @TestPropertySource(properties = {
-    "${CORS_ALLOWED_ORIGIN:http://localhost:3000}"
+        "CORS_ALLOWED_ORIGIN=http://localhost:3000"
 })
 public class EventControllerTest {
 
@@ -72,6 +74,8 @@ public class EventControllerTest {
 
     @MockBean
     private JwtTokenProvider jwtTokenProvider;
+
+
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -564,4 +568,19 @@ public class EventControllerTest {
 
         verify(eventService).deleteEvent(id2);
     }
+    @Test
+    void getAllEvents_shouldReturnInternalServerError_whenServiceThrowsException() throws Exception {
+
+        SecurityContextHolder.clearContext();
+
+
+        when(eventService.listEvents(null)).thenThrow(new RuntimeException("Simulated failure"));
+
+        mockMvc.perform(get("/api/events"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string("Failed get event"));
+
+        verify(eventService).listEvents(null);
+    }
+
 }
