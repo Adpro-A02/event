@@ -56,7 +56,7 @@ public class EventController {
                 throw new IllegalArgumentException("User ID bukan UUID valid");
             }
 
-//            createEventDTO.setUserId(userId);
+
 
             Event createdEvent = eventService.createEvent(createEventDTO,userId);
 
