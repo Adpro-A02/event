@@ -28,19 +28,25 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -48,18 +54,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-//@SpringBootTest
-//@AutoConfigureMockMvc
-//@TestPropertySource(properties = {
-//        "spring.datasource.url=jdbc:h2:mem:testdb",
-//        "spring.datasource.username=sa",
-//        "spring.datasource.password=",
-//        "spring.datasource.driver-class-name=org.h2.Driver",
-//        "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
-//        "spring.jpa.hibernate.ddl-auto=create-drop",
-//        "spring.jpa.show-sql=false",
-//        "JWT_SECRET=test-jwt-secret-key-for-testing-only-must-be-at-least-256-bits-long"
-//})
+
 @WebMvcTest(EventController.class)
 @Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
 @TestPropertySource(properties = {
@@ -183,6 +178,7 @@ public class EventControllerTest {
                 .andExpect(jsonPath("$.length()").value(2));
     }
 
+
     @Test
     @WithMockUser(authorities = "Organizer")
     void publishEvent_success() throws Exception {
@@ -192,11 +188,75 @@ public class EventControllerTest {
                 .data(EventStatus.PUBLISHED)
                 .build();
 
-        when(eventService.publishEvent(id)).thenReturn(response);
+        when(eventService.publishEvent(id)).thenReturn(CompletableFuture.completedFuture(response));
 
-        mockMvc.perform(patch("/api/events/{id}/publish", id))
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
                 .andExpect(status().isOk())
                 .andExpect(content().string("\"PUBLISHED\""));
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_runtimeException() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.failedFuture(new IllegalStateException("Unexpected error")));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().string(containsString("An unexpected error occurred")));
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_unsuccessful_shouldReturn400BadRequest() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        ResponseDTO<EventStatus> failedResponse = ResponseDTO.<EventStatus>builder()
+                .success(false)
+                .message("Event not found")
+                .build();
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.completedFuture(failedResponse));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isBadRequest());
+
+    }
+
+    @Test
+    @WithMockUser(authorities = "Organizer")
+    void publishEvent_eventNotFound() throws Exception {
+        UUID id = UUID.randomUUID();
+
+
+        when(eventService.publishEvent(id))
+                .thenReturn(CompletableFuture.failedFuture(new EventNotFoundException("Event not found")));
+
+        MvcResult mvcResult = mockMvc.perform(patch("/api/events/{id}/publish", id))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(mvcResult))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(containsString("Event not found")));
     }
 
     @Test

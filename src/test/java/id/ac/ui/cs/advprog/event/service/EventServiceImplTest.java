@@ -3,6 +3,7 @@ package id.ac.ui.cs.advprog.event.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import id.ac.ui.cs.advprog.event.dto.CreateEventDTO;
 import id.ac.ui.cs.advprog.event.dto.ResponseDTO;
@@ -433,40 +434,42 @@ public class EventServiceImplTest {
     }
 
     @Test
-    void testPublishEvent() {
+    void testPublishEvent() throws Exception {
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
         when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
 
-        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId);
+        CompletableFuture<ResponseDTO<EventStatus>> futureResult = eventService.publishEvent(eventId);
+        ResponseDTO<EventStatus> result = futureResult.get(); // blocking get to get actual result
 
         assertNotNull(result);
+        assertTrue(result.isSuccess());
         assertEquals(EventStatus.PUBLISHED, result.getData());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).save(any(Event.class));
     }
 
     @Test
-    void testPublishEvent_pastEvent() {
-
+    void testPublishEvent_pastEvent() throws Exception {
         publicEvent1.setEventDate(LocalDateTime.now().minusDays(1));
         when(eventRepository.findById(eventId2)).thenReturn(Optional.of(publicEvent1));
 
-        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId2);
+        CompletableFuture<ResponseDTO<EventStatus>> futureResult = eventService.publishEvent(eventId2);
+        ResponseDTO<EventStatus> result = futureResult.get();
 
         assertFalse(result.isSuccess());
         assertNull(result.getData());
         assertEquals("Cannot publish event with a past date", result.getMessage());
         verify(eventRepository, times(1)).findById(eventId2);
-        verify(eventRepository, never()).save(any(Event.class)); 
+        verify(eventRepository, never()).save(any(Event.class));
     }
 
     @Test
-    void testPublishEvent_minimum() {
-
+    void testPublishEvent_minimum() throws Exception {
         publicEvent1.setEventDate(LocalDateTime.now().plusMonths(1));
         when(eventRepository.findById(eventId2)).thenReturn(Optional.of(publicEvent1));
 
-        ResponseDTO<EventStatus> result = eventService.publishEvent(eventId2);
+        CompletableFuture<ResponseDTO<EventStatus>> futureResult = eventService.publishEvent(eventId2);
+        ResponseDTO<EventStatus> result = futureResult.get();
 
         assertFalse(result.isSuccess());
         assertNull(result.getData());
@@ -474,6 +477,7 @@ public class EventServiceImplTest {
         verify(eventRepository, times(1)).findById(eventId2);
         verify(eventRepository, never()).save(any(Event.class));
     }
+
 
     @Test
     void testCancelEvent() {
