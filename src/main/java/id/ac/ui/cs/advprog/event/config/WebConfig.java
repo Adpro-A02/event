@@ -16,7 +16,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
-    @Value("${CORS_ALLOWED_ORIGIN}")
+    @Value("${CORS_ALLOWED_ORIGIN:http://localhost:3000}")
     private String allowedOrigin;
 
     @Override

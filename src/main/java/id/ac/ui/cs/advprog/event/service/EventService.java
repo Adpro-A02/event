@@ -10,6 +10,7 @@ import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public interface  EventService {
     UpdateEventDTO updateEvent(UUID id, UpdateEventDTO updateEventDTO);
@@ -18,10 +19,10 @@ public interface  EventService {
     List<Event> listEvents(UUID userId);
     Event createEvent(CreateEventDTO dto,UUID userId);
     ResponseDTO<EventStatus> cancelEvent(UUID id);
-    ResponseDTO<EventStatus> publishEvent(UUID id);
+    CompletableFuture<ResponseDTO<EventStatus>> publishEvent(UUID id);
     ResponseDTO<EventStatus> completeEvent(UUID id);
     Event getEvent(UUID id);
-    boolean validateEvent(UpdateEventDTO event);
+
 
 
    
