@@ -15,6 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 
@@ -215,6 +216,34 @@ public class EventServiceImplTest {
         assertEquals("Title cannot be empty", exception.getMessage());
         verify(eventRepository, never()).save(any());
     }
+    @Test
+    void testListEventsWhenUserIdIsNull() {
+        List<Event> expectedEvents = List.of(
+                new Event(), new Event()
+        );
+
+        when(eventRepository.findByStatusIn(List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED)))
+                .thenReturn(expectedEvents);
+
+        List<Event> result = eventService.listEvents(null);
+
+        assertThat(result).hasSize(2);
+        verify(eventRepository).findByStatusIn(List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
+    }
+
+    @Test
+    void testListEventsWhenUserIdIsNotNull() {
+        UUID userId = UUID.randomUUID();
+        List<Event> expectedEvents = List.of(new Event());
+
+        when(eventRepository.findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED)))
+                .thenReturn(expectedEvents);
+
+        List<Event> result = eventService.listEvents(userId);
+
+        assertThat(result).hasSize(1);
+        verify(eventRepository).findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
+    }
 
     @Test
     void testUpdateEvent_Success() {
@@ -282,47 +311,65 @@ public class EventServiceImplTest {
         String role = "Organizer";
         List<Event> mockEvents = List.of(new Event(), new Event());
 
-        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED))
+        when(eventRepository.findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED)))
                 .thenReturn(mockEvents);
 
         List<Event> result = eventService.listEvents(userId);
 
         assertEquals(2, result.size());
-        verify(eventRepository).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository).findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
         verify(eventRepository, never()).findByStatus(any());
     }
 
     @Test
     void testListEvents_shouldReturnPublishedEvents_whenUserIdIsNull() {
 
+        Event draftEvent1 = new Event();
+        draftEvent1.setId(UUID.randomUUID());
+        draftEvent1.setTitle("Event 1");
+        draftEvent1.setStatus(EventStatus.DRAFT);
+        draftEvent1.setUserId(UUID.randomUUID());
+
+        Event draftEvent2 = new Event();
+        draftEvent2.setId(UUID.randomUUID());
+        draftEvent2.setTitle("Event 2");
+        draftEvent2.setStatus(EventStatus.DRAFT);
+        draftEvent2.setUserId(UUID.randomUUID());
+
+
         Event publishedEvent1 = new Event();
-        publishedEvent1.setId(UUID.randomUUID());
-        publishedEvent1.setTitle("Published Event 1");
+        publishedEvent1.setId(draftEvent1.getId());
+        publishedEvent1.setTitle(draftEvent1.getTitle());
         publishedEvent1.setStatus(EventStatus.PUBLISHED);
-        publishedEvent1.setUserId(UUID.randomUUID());
+        publishedEvent1.setUserId(draftEvent1.getUserId());
 
         Event publishedEvent2 = new Event();
-        publishedEvent2.setId(UUID.randomUUID());
-        publishedEvent2.setTitle("Published Event 2");
+        publishedEvent2.setId(draftEvent2.getId());
+        publishedEvent2.setTitle(draftEvent2.getTitle());
         publishedEvent2.setStatus(EventStatus.PUBLISHED);
-        publishedEvent2.setUserId(UUID.randomUUID());
+        publishedEvent2.setUserId(draftEvent2.getUserId());
 
         List<Event> publishedEvents = Arrays.asList(publishedEvent1, publishedEvent2);
 
-        when(eventRepository.findByStatus(EventStatus.PUBLISHED)).thenReturn(publishedEvents);
+
+        when(eventRepository.findByStatusIn(List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED)))
+                .thenReturn(publishedEvents);
+
 
         List<Event> result = eventService.listEvents(null);
 
+
         assertNotNull(result);
         assertEquals(2, result.size());
-        assertEquals("Published Event 1", result.get(0).getTitle());
-        assertEquals("Published Event 2", result.get(1).getTitle());
         assertEquals(EventStatus.PUBLISHED, result.get(0).getStatus());
         assertEquals(EventStatus.PUBLISHED, result.get(1).getStatus());
 
-        verify(eventRepository, times(1)).findByStatus(EventStatus.PUBLISHED);
-        verify(eventRepository, never()).findOwnOrPublishedEvents(any(UUID.class), any(EventStatus.class));
+        // Verifikasi interaksi
+        verify(eventRepository, times(1))
+                .findByStatusIn(List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
+        verify(eventRepository, never()).findOwnOrPublishedEvents(any(), any());
     }
+
 
     @Test
     void testListEvents_shouldReturnOwnAndPublishedEvents_whenUserIdIsProvided() {
@@ -337,7 +384,7 @@ public class EventServiceImplTest {
 
         List<Event> ownOrPublishedEvents = Arrays.asList(ownDraftEvent, publicEvent1);
 
-        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED)).thenReturn(ownOrPublishedEvents);
+        when(eventRepository.findOwnOrPublishedEvents(userId,List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED))).thenReturn(ownOrPublishedEvents);
 
         List<Event> result = eventService.listEvents(userId);
 
@@ -346,7 +393,7 @@ public class EventServiceImplTest {
         assertTrue(result.contains(ownDraftEvent));
         assertTrue(result.contains(publicEvent1));
 
-        verify(eventRepository, times(1)).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository, times(1)).findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
         verify(eventRepository, never()).findByStatus(any(EventStatus.class));
     }
 
@@ -403,7 +450,7 @@ public class EventServiceImplTest {
         UUID userId = UUID.randomUUID();
         List<Event> mockEvents = List.of(publicEvent1, publicEvent2, testEvent);
 
-        when(eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED))
+        when(eventRepository.findOwnOrPublishedEvents(userId,List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED)))
                 .thenReturn(mockEvents);
 
         List<Event> result = eventService.listEvents(userId);
@@ -413,7 +460,7 @@ public class EventServiceImplTest {
         assertTrue(result.contains(publicEvent2));
         assertTrue(result.contains(testEvent));
 
-        verify(eventRepository).findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
+        verify(eventRepository).findOwnOrPublishedEvents(userId, List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED));
         verify(eventRepository, never()).findByStatus(any());
     }
 

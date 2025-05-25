@@ -23,13 +23,52 @@ public class EventRepositoryTest {
     private EventRepository eventRepository;
 
     private UUID testUserId;
-
+    private UUID userId1;
+    private UUID userId2;
+    private LocalDateTime eventDate;
     @BeforeEach
     void setUp() {
 
         eventRepository.deleteAll();
-
+        userId1 = UUID.randomUUID();
+        userId2 = UUID.randomUUID();
+        eventDate = LocalDateTime.now().plusDays(7);
         testUserId = UUID.randomUUID();
+
+        Event event1 = new Event();
+
+        event1.setTitle("Event 1");
+        event1.setDescription("Description 1");
+        event1.setEventDate(eventDate);
+        event1.setLocation("Location 1");
+        event1.setBasePrice(50.0);
+        event1.setStatus(EventStatus.PUBLISHED);
+        event1.setUserId(userId1);
+
+        Event event2 = new Event();
+
+        event2.setTitle("Event 2");
+        event2.setDescription("Description 2");
+        event2.setEventDate(eventDate.minusDays(1));
+        event2.setLocation("Location 2");
+        event2.setBasePrice(70.0);
+        event2.setStatus(EventStatus.COMPLETED);
+        event2.setUserId(userId1);
+
+        Event event3 = new Event();
+
+        event3.setTitle("Event 3");
+        event3.setDescription("Description 3");
+        event3.setEventDate(eventDate.plusDays(3));
+        event3.setLocation("Location 3");
+        event3.setBasePrice(80.0);
+        event3.setStatus(EventStatus.DRAFT);
+        event3.setUserId(userId2);
+
+        eventRepository.save(event1);
+        eventRepository.save(event2);
+        eventRepository.save(event3);
+
     }
 
     @Test
@@ -109,8 +148,8 @@ public class EventRepositoryTest {
 
         List<Event> result = eventRepository.findByEventDateAfter(now);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getTitle()).isEqualTo("Pemrograman Lanjut");
+        assertThat(result).hasSize(4);
+        assertThat(result.get(0).getTitle()).isEqualTo("Event 1");
         assertThat(result.get(0).getEventDate()).isAfter(now);
     }
 
@@ -126,4 +165,16 @@ public class EventRepositoryTest {
         assertThat(dateResults).isEmpty();
         assertThat(locationResults).isEmpty();
     }
+
+    @Test
+    void testFindByStatusIn_returnsCorrectEvents() {
+        List<EventStatus> statuses = List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED);
+
+        List<Event> results = eventRepository.findByStatusIn(statuses);
+
+        assertThat(results).hasSize(2);
+        assertThat(results).extracting(Event::getStatus).containsOnly(EventStatus.PUBLISHED, EventStatus.COMPLETED);
+    }
+
+
 }

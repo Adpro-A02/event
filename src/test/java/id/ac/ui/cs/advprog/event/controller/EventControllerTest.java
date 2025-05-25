@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(EventController.class)
 @Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
 @TestPropertySource(properties = {
-    "CORS_ALLOWED_ORIGIN=http://localhost:3000"
+    "${CORS_ALLOWED_ORIGIN:http://localhost:3000}"
 })
 public class EventControllerTest {
 

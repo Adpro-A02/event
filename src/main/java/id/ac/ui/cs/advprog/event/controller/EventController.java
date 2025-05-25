@@ -32,7 +32,7 @@ import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.service.EventService;
 import jakarta.persistence.EntityNotFoundException;
 
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "${CORS_ALLOWED_ORIGIN:http://localhost:3000}")
 @RestController
 @RequestMapping("/api/events")
 public class EventController {

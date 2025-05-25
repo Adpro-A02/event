@@ -90,14 +90,15 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<Event> listEvents(UUID userId) {
+        List<EventStatus> statuses = List.of(EventStatus.PUBLISHED, EventStatus.COMPLETED);
 
         if (userId == null) {
-            return eventRepository.findByStatus(EventStatus.PUBLISHED);
-        } else{
-            return eventRepository.findOwnOrPublishedEvents(userId, EventStatus.PUBLISHED);
-
+            return eventRepository.findByStatusIn(statuses);
+        } else {
+            return eventRepository.findOwnOrPublishedEvents(userId, statuses);
         }
     }
+
 
 
     @Override
