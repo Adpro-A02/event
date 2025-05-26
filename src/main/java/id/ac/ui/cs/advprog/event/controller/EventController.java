@@ -172,6 +172,13 @@ public class EventController {
             throw new EventNotFoundException("Event not found");
         }
     }
+    @GetMapping("/organizer/my-events")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<?> getMyEvents(Authentication auth) {
+        UUID organizerId = UUID.fromString(auth.getName()); 
+        List<Event> events = eventService.listEventsByOrganizer(organizerId);
+        return ResponseEntity.ok(Map.of("data", Map.of("events", events)));
+    }
 
 
 
