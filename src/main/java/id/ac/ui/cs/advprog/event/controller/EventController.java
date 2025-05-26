@@ -2,6 +2,7 @@ package id.ac.ui.cs.advprog.event.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,7 +31,6 @@ import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.exception.EventNotFoundException;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.service.EventService;
-import jakarta.persistence.EntityNotFoundException;
 
 @CrossOrigin(origins = "${CORS_ALLOWED_ORIGIN:http://localhost:3000}")
 @RestController
@@ -45,13 +45,13 @@ public class EventController {
     public ResponseEntity<Event> createEvent(@RequestBody CreateEventDTO createEventDTO) {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            logger.debug("ini user id{}",authentication);
+
            
 
             UUID userId = null;
             try {
                 userId = UUID.fromString(authentication.getName());
-                logger.debug("ini user id{}",userId.toString());
+
             } catch (IllegalArgumentException ex) {
                 throw new IllegalArgumentException("User ID bukan UUID valid");
             }
@@ -72,7 +72,6 @@ public class EventController {
     try {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UUID userId = null;
-
 
         if (authentication != null && authentication.isAuthenticated()
                 && !"anonymousUser".equals(authentication.getPrincipal())) {
@@ -173,6 +172,15 @@ public class EventController {
             throw new EventNotFoundException("Event not found");
         }
     }
+    @GetMapping("/organizer/my-events")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<?> getMyEvents(Authentication auth) {
+        UUID organizerId = UUID.fromString(auth.getName()); 
+        List<Event> events = eventService.listEventsByOrganizer(organizerId);
+        return ResponseEntity.ok(Map.of("data", Map.of("events", events)));
+    }
+
+
 
 
 

@@ -155,5 +155,10 @@ public class EventServiceImpl implements EventService {
                 .data(status)
                 .build();
     }
+    @Override
+    public List<Event> listEventsByOrganizer(UUID organizerId) {
+        return eventRepository.findByUserId(organizerId);
+    } 
+
 
 }

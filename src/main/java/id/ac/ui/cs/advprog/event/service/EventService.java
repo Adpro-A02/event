@@ -22,6 +22,7 @@ public interface  EventService {
     CompletableFuture<ResponseDTO<EventStatus>> publishEvent(UUID id);
     ResponseDTO<EventStatus> completeEvent(UUID id);
     Event getEvent(UUID id);
+    List<Event> listEventsByOrganizer(UUID organizerId);
 
 
 

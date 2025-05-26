@@ -620,4 +620,79 @@ public class EventServiceImplTest {
         assertEquals("Event not found", thrown.getMessage());
     }
 
+    @Test
+    void testListEventsByOrganizer_ShouldReturnEmptyListWhenNoEvents() {
+
+        UUID organizerId = UUID.randomUUID();
+        List<Event> emptyList = new ArrayList<>();
+
+        when(eventRepository.findByUserId(organizerId)).thenReturn(emptyList);
+
+
+        List<Event> result = eventService.listEventsByOrganizer(organizerId);
+
+
+        assertThat(result).isEmpty();
+        verify(eventRepository, times(1)).findByUserId(organizerId);
+    }
+
+    @Test
+    void testListEventsByOrganizer_ShouldReturnEventsWithDifferentStatuses() {
+
+        UUID organizerId = UUID.randomUUID();
+
+        Event publishedEvent = createTestEvent("Published Event", organizerId);
+        publishedEvent.setStatus(EventStatus.PUBLISHED);
+
+        Event draftEvent = createTestEvent("Draft Event", organizerId);
+        draftEvent.setStatus(EventStatus.DRAFT);
+
+        Event completedEvent = createTestEvent("Completed Event", organizerId);
+        completedEvent.setStatus(EventStatus.COMPLETED);
+
+        List<Event> expectedEvents = Arrays.asList(publishedEvent, draftEvent, completedEvent);
+
+        when(eventRepository.findByUserId(organizerId)).thenReturn(expectedEvents);
+
+
+        List<Event> result = eventService.listEventsByOrganizer(organizerId);
+
+
+        assertThat(result).hasSize(3);
+        assertThat(result).extracting(Event::getStatus)
+                .containsExactlyInAnyOrder(EventStatus.PUBLISHED, EventStatus.DRAFT, EventStatus.COMPLETED);
+        assertThat(result).allMatch(event -> event.getUserId().equals(organizerId));
+
+        verify(eventRepository, times(1)).findByUserId(organizerId);
+    }
+
+    @Test
+    void testListEventsByOrganizer_ShouldHandleNullOrganizerIdGracefully() {
+
+        UUID nullOrganizerId = null;
+
+        when(eventRepository.findByUserId(nullOrganizerId)).thenReturn(new ArrayList<>());
+
+
+        List<Event> result = eventService.listEventsByOrganizer(nullOrganizerId);
+
+
+        assertThat(result).isEmpty();
+        verify(eventRepository, times(1)).findByUserId(nullOrganizerId);
+    }
+
+    private Event createTestEvent(String title, UUID userId) {
+        Event event = new Event();
+        event.setId(UUID.randomUUID());
+        event.setTitle(title);
+        event.setDescription("Test Description");
+        event.setEventDate(LocalDateTime.now().plusDays(7));
+        event.setLocation("Test Location");
+        event.setBasePrice(100.0);
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setUserId(userId);
+        return event;
+    }
+
+
 }
