@@ -58,7 +58,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(EventController.class)
 @Import(id.ac.ui.cs.advprog.event.config.SecurityConfig.class)
 @TestPropertySource(properties = {
-    "${CORS_ALLOWED_ORIGIN:http://localhost:3000}"
+    "${CORS_ALLOWED_ORIGIN=http://localhost:3000}"
 })
 public class EventControllerTest {
 
@@ -563,5 +563,43 @@ public class EventControllerTest {
                .andExpect(status().isNotFound());
 
         verify(eventService).deleteEvent(id2);
+    }
+
+    @Test
+    @WithMockUser(username = "c64ee53e-f39b-4ec8-9288-3318b0b8a97e", authorities = "Organizer")
+    void getMyEvents_Success_ReturnsEventsList() throws Exception {
+        // Arrange
+        when(eventService.listEventsByOrganizer(any(UUID.class))).thenReturn(mockEvents);
+
+        // Act & Assert
+        mockMvc.perform(get("/api/events/organizer/my-events")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.data.events").isArray())
+                .andExpect(jsonPath("$.data.events.length()").value(2))
+                .andExpect(jsonPath("$.data.events[0].title").value("Test Event 1"))
+                .andExpect(jsonPath("$.data.events[0].location").value("Depok"))
+                .andExpect(jsonPath("$.data.events[0].basePrice").value(100.0))
+                .andExpect(jsonPath("$.data.events[0].status").value("DRAFT"))
+                .andExpect(jsonPath("$.data.events[1].title").value("Test Event 2"))
+                .andExpect(jsonPath("$.data.events[1].location").value("Jakarta"))
+                .andExpect(jsonPath("$.data.events[1].basePrice").value(200.0))
+                .andExpect(jsonPath("$.data.events[1].status").value("PUBLISHED"));
+    }
+
+    @Test
+    @WithMockUser(username = "12345678-1234-1234-1234-123456789012", authorities = "Organizer")
+    void getMyEvents_EmptyList_ReturnsEmptyArray() throws Exception {
+
+        when(eventService.listEventsByOrganizer(any(UUID.class))).thenReturn(Arrays.asList());
+
+
+        mockMvc.perform(get("/api/events/organizer/my-events")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.data.events").isArray())
+                .andExpect(jsonPath("$.data.events.length()").value(0));
     }
 }

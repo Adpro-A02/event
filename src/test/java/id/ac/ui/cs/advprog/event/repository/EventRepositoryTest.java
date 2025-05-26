@@ -176,5 +176,21 @@ public class EventRepositoryTest {
         assertThat(results).extracting(Event::getStatus).containsOnly(EventStatus.PUBLISHED, EventStatus.COMPLETED);
     }
 
+    @Test
+    @DisplayName("Should return empty list when no events found for user")
+    void testFindByUserId_ShouldReturnEmptyListWhenNoEventsFound() {
+        UUID nonExistentUserId = UUID.randomUUID();
+        List<Event> events = eventRepository.findByUserId(nonExistentUserId);
+        assertThat(events).isEmpty();
+    }
 
+    @Test
+    @DisplayName("Should return events with different statuses for same user")
+    void testFindByUserId_ShouldReturnEventsWithDifferentStatuses() {
+        List<Event> userId1Events = eventRepository.findByUserId(userId1);
+
+        assertThat(userId1Events).hasSize(2);
+        assertThat(userId1Events).extracting(Event::getStatus)
+                .containsExactlyInAnyOrder(EventStatus.PUBLISHED, EventStatus.COMPLETED);
+    }
 }

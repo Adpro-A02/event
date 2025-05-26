@@ -2,6 +2,7 @@ package id.ac.ui.cs.advprog.event.controller;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -96,9 +97,6 @@ public class EventController {
         } catch (RuntimeException e) {
 
             throw new EventNotFoundException("Event not found");
-
-
-
         }
     }
     @PreAuthorize("hasAuthority('Organizer')")
@@ -172,6 +170,14 @@ public class EventController {
         } catch (EventNotFoundException e) {
             throw new EventNotFoundException("Event not found");
         }
+    }
+
+    @GetMapping("/organizer/my-events")
+    @PreAuthorize("hasAuthority('Organizer')")
+    public ResponseEntity<?> getMyEvents(Authentication auth) {
+        UUID organizerId = UUID.fromString(auth.getName());  // Ambil dari token
+        List<Event> events = eventService.listEventsByOrganizer(organizerId);
+        return ResponseEntity.ok(Map.of("data", Map.of("events", events)));
     }
 
 

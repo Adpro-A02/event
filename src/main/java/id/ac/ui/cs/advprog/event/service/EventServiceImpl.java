@@ -156,4 +156,10 @@ public class EventServiceImpl implements EventService {
                 .build();
     }
 
+    public List<Event> listEventsByOrganizer(UUID organizerId) {
+        return eventRepository.findByUserId(organizerId);
+    }
+
+
+
 }

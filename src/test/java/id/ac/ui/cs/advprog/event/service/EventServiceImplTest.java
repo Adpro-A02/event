@@ -12,6 +12,7 @@ import id.ac.ui.cs.advprog.event.model.EventBuilder;
 import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -527,16 +528,38 @@ public class EventServiceImplTest {
 
 
     @Test
-    void testCancelEvent() {
+    @DisplayName("Should cancel event successfully when event exists")
+    void testCancelEvent_ShouldCancelEventSuccessfully() {
+        // Arrange
         when(eventRepository.findById(eventId)).thenReturn(Optional.of(testEvent));
         when(eventRepository.save(any(Event.class))).thenReturn(testEvent);
 
+        // Act
         ResponseDTO<EventStatus> result = eventService.cancelEvent(eventId);
 
+        // Assert
         assertNotNull(result);
         assertEquals(EventStatus.CANCELLED, result.getData());
         verify(eventRepository, times(1)).findById(eventId);
         verify(eventRepository, times(1)).save(any(Event.class));
+    }
+
+    @Test
+    @DisplayName("Should throw EventNotFoundException when event does not exist")
+    void testCancelEvent_ShouldThrowExceptionWhenEventNotFound() {
+        // Arrange
+        UUID nonExistentEventId = UUID.randomUUID();
+        when(eventRepository.findById(nonExistentEventId)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        EventNotFoundException exception = assertThrows(
+                EventNotFoundException.class,
+                () -> eventService.cancelEvent(nonExistentEventId)
+        );
+
+        assertEquals("Event not found", exception.getMessage());
+        verify(eventRepository, times(1)).findById(nonExistentEventId);
+        verify(eventRepository, never()).save(any(Event.class)); // Ensure save is never called
     }
 
     @Test
@@ -619,5 +642,104 @@ public class EventServiceImplTest {
 
         assertEquals("Event not found", thrown.getMessage());
     }
+    @Test
+    @DisplayName("Should return events for specific organizer")
+    void testListEventsByOrganizer_ShouldReturnOrganizerEvents() {
+        // Arrange
+        UUID organizerId = UUID.randomUUID();
+        List<Event> expectedEvents = Arrays.asList(
+                createTestEvent("Event 1", organizerId),
+                createTestEvent("Event 2", organizerId)
+        );
 
+        when(eventRepository.findByUserId(organizerId)).thenReturn(expectedEvents);
+
+        // Act
+        List<Event> result = eventService.listEventsByOrganizer(organizerId);
+
+        // Assert
+        assertThat(result).hasSize(2);
+        assertThat(result).isEqualTo(expectedEvents);
+        assertThat(result).allMatch(event -> event.getUserId().equals(organizerId));
+
+        verify(eventRepository, times(1)).findByUserId(organizerId);
+    }
+
+    @Test
+    @DisplayName("Should return empty list when organizer has no events")
+    void testListEventsByOrganizer_ShouldReturnEmptyListWhenNoEvents() {
+        // Arrange
+        UUID organizerId = UUID.randomUUID();
+        List<Event> emptyList = new ArrayList<>();
+
+        when(eventRepository.findByUserId(organizerId)).thenReturn(emptyList);
+
+        // Act
+        List<Event> result = eventService.listEventsByOrganizer(organizerId);
+
+        // Assert
+        assertThat(result).isEmpty();
+        verify(eventRepository, times(1)).findByUserId(organizerId);
+    }
+
+    @Test
+    @DisplayName("Should return organizer events with different statuses")
+    void testListEventsByOrganizer_ShouldReturnEventsWithDifferentStatuses() {
+        // Arrange
+        UUID organizerId = UUID.randomUUID();
+
+        Event publishedEvent = createTestEvent("Published Event", organizerId);
+        publishedEvent.setStatus(EventStatus.PUBLISHED);
+
+        Event draftEvent = createTestEvent("Draft Event", organizerId);
+        draftEvent.setStatus(EventStatus.DRAFT);
+
+        Event completedEvent = createTestEvent("Completed Event", organizerId);
+        completedEvent.setStatus(EventStatus.COMPLETED);
+
+        List<Event> expectedEvents = Arrays.asList(publishedEvent, draftEvent, completedEvent);
+
+        when(eventRepository.findByUserId(organizerId)).thenReturn(expectedEvents);
+
+        // Act
+        List<Event> result = eventService.listEventsByOrganizer(organizerId);
+
+        // Assert
+        assertThat(result).hasSize(3);
+        assertThat(result).extracting(Event::getStatus)
+                .containsExactlyInAnyOrder(EventStatus.PUBLISHED, EventStatus.DRAFT, EventStatus.COMPLETED);
+        assertThat(result).allMatch(event -> event.getUserId().equals(organizerId));
+
+        verify(eventRepository, times(1)).findByUserId(organizerId);
+    }
+
+    @Test
+    @DisplayName("Should handle null organizer ID gracefully")
+    void testListEventsByOrganizer_ShouldHandleNullOrganizerIdGracefully() {
+        // Arrange
+        UUID nullOrganizerId = null;
+
+        when(eventRepository.findByUserId(nullOrganizerId)).thenReturn(new ArrayList<>());
+
+        // Act
+        List<Event> result = eventService.listEventsByOrganizer(nullOrganizerId);
+
+        // Assert
+        assertThat(result).isEmpty();
+        verify(eventRepository, times(1)).findByUserId(nullOrganizerId);
+    }
+
+    // Helper method untuk membuat test event
+    private Event createTestEvent(String title, UUID userId) {
+        Event event = new Event();
+        event.setId(UUID.randomUUID());
+        event.setTitle(title);
+        event.setDescription("Test Description");
+        event.setEventDate(LocalDateTime.now().plusDays(7));
+        event.setLocation("Test Location");
+        event.setBasePrice(100.0);
+        event.setStatus(EventStatus.PUBLISHED);
+        event.setUserId(userId);
+        return event;
+    }
 }
