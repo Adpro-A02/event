@@ -2,23 +2,14 @@ package id.ac.ui.cs.advprog.event.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.security.Key;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -62,13 +53,12 @@ public class JwtTokenProvider {
     }
 
     public boolean validateToken(String token) {
-        logger.debug("Validating token: {}", token);
-        logger.debug("Using secret: '{}'", jwtSecret);
+    
 
         try {
             Claims claims = getClaims(token);
 
-            logger.debug("Token valid for user: {}", claims.getSubject());
+           
             return true;
         } catch (ExpiredJwtException ex) {
             logger.warn("Token expired at: {}", ex.getClaims().getExpiration());

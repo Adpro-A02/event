@@ -6,7 +6,6 @@ import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
 import java.time.LocalDate;
-import java.util.Optional;
 
 import java.util.List;
 import java.util.UUID;

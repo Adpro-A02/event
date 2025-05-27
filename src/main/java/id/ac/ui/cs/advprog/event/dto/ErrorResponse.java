@@ -3,7 +3,6 @@ package id.ac.ui.cs.advprog.event.dto;
 import lombok.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Setter
 @Data
