@@ -34,12 +34,9 @@ import id.ac.ui.cs.advprog.event.dto.UpdateEventDTO;
 import id.ac.ui.cs.advprog.event.enums.EventStatus;
 import id.ac.ui.cs.advprog.event.model.Event;
 import id.ac.ui.cs.advprog.event.repository.EventRepository;
-import id.ac.ui.cs.advprog.event.service.EventServiceImpl;
 import static org.mockito.Mockito.*;
 import org.mockito.InjectMocks;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 

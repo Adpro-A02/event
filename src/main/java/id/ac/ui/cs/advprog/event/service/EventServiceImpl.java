@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -23,7 +21,6 @@ import id.ac.ui.cs.advprog.event.repository.EventRepository;
 
 @Service
 public class EventServiceImpl implements EventService {
-    private static final Logger logger = LoggerFactory.getLogger(EventServiceImpl.class);
     @Autowired
     private EventRepository eventRepository;
 
@@ -54,7 +51,7 @@ public class EventServiceImpl implements EventService {
 
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new EventNotFoundException("Event not found"));
-        logger.debug("{}",event.getDescription());
+       
         if (event.getStatus() == EventStatus.PUBLISHED) {
 
             throw new IllegalArgumentException("Published event restriction cannot be updated");

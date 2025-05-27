@@ -3,7 +3,6 @@ package id.ac.ui.cs.advprog.event.model;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.hibernate.annotations.GenericGenerator;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -29,7 +28,6 @@ public class Event {
 
     @Id
     @GeneratedValue(generator = "UUID")
-//    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
